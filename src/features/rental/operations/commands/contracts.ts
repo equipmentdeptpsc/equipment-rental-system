@@ -60,10 +60,10 @@ export interface MeterCheckpointCommandRepository {
 }
 
 export interface ReturnRentalLineInput extends OperationalCommandMetadata {
-  rentalId: string; rentalLineId: string; equipmentId: string; assignmentId?: string;
+  rentalId: string; rentalLineId: string; equipmentId: string; assignmentId?: string; actualReturnDate: string;
 }
-export interface ReturnAllRentalLinesInput extends OperationalCommandMetadata { rentalId: string }
-export interface RentalLineReturnProjection { rentalId: string; rentalLineId: string; status: string; version: number }
+export interface ReturnAllRentalLinesInput extends OperationalCommandMetadata { rentalId: string; actualReturnDate: string }
+export interface RentalLineReturnProjection { rentalId: string; rentalLineId: string; status: string; version: number; actualReturnDate?: string }
 export interface ReturnAllProjection { rentalId: string; lines: readonly RentalLineReturnProjection[]; version: number }
 export interface RentalReturnReadiness { rentalId: string; ready: boolean; historicalBoundary: string; blockers: readonly { code: string; message: string; rentalLineId: string; workDate: string; shiftCode?: string }[] }
 export interface RentalReturnCommandRepository {
