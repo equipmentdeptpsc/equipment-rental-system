@@ -15,7 +15,7 @@ describe("Phase C2 operational command architecture", () => {
     await repositories.customerReviewCommands.createRequest({ commandId: "c", idempotencyKey: "i", deurId: "d", rentalLineId: "l", revisionId: "r" });
     await repositories.deurRevisionCommands.createCorrection({ commandId: "c2", idempotencyKey: "i2", deurId: "d", sourceRevisionId: "r", changes: {}, reasonCode: "OTHER" });
     await repositories.meterCheckpointCommands.record({ commandId: "c3", idempotencyKey: "i3", deurId: "d", rentalLineId: "l", equipmentId: "e", kind: "opening", reading: 1 });
-    await repositories.rentalReturnCommands.returnLine({ commandId: "c4", idempotencyKey: "i4", rentalId: "r", rentalLineId: "l", equipmentId: "e" });
+    await repositories.rentalReturnCommands.returnLine({ commandId: "c4", idempotencyKey: "i4", rentalId: "r", rentalLineId: "l", equipmentId: "e", actualReturnDate: "2026-09-06" });
     await repositories.rentalClosureCommands.close({ commandId: "c5", idempotencyKey: "i5", rentalId: "r" });
     expect(rpc.mock.calls.map((call) => call[1])).toEqual(["command_create_customer_review_request", "command_create_deur_correction", "command_record_meter_checkpoint", "command_return_rental_line", "command_close_rental"]);
     expect(rpc.mock.calls.every((call) => call[0] === "erp")).toBe(true);

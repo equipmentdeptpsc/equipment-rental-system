@@ -65,17 +65,18 @@ describe("canonical remote Rental Return remediation", () => {
 
   it("maps returnAll to the canonical RPC", async () => {
     const rpc = vi.fn().mockResolvedValue({ data: { success: true, disposition: "ACCEPTED", value: { rentalId: active.id, lines: [], version: 1 } }, error: null });
-    await new SupabaseOperationalCommandRepository({ schema: () => ({ rpc }) }).returnAll({ commandId: "c", idempotencyKey: "i", rentalId: active.id });
-    expect(rpc).toHaveBeenCalledWith("command_return_all_rental_lines", { command: { commandId: "c", idempotencyKey: "i", rentalId: active.id } });
+    await new SupabaseOperationalCommandRepository({ schema: () => ({ rpc }) }).returnAll({ commandId: "c", idempotencyKey: "i", rentalId: active.id, actualReturnDate: "2026-09-06" });
+    expect(rpc).toHaveBeenCalledWith("command_return_all_rental_lines", { command: { commandId: "c", idempotencyKey: "i", rentalId: active.id, actualReturnDate: "2026-09-06" } });
   });
 
   it("shows Return only for authorized Active Rentals and dispatches once", async () => {
     const returnAll = vi.fn(async () => ({ success: true, disposition: "ACCEPTED", value: { rentalId: active.id, lines: [], version: 1 } } as const));
     const container = await render(dependencies(returnAll)); await act(async () => { await Promise.resolve(); }); const button = [...container.querySelectorAll("button")].find((item) => item.textContent === "Return Equipment")!;
     expect(button).toBeTruthy();
-    await act(async () => { button.click(); button.click(); await Promise.resolve(); });
+    const date = container.querySelector<HTMLInputElement>('input[aria-label="Return business date"]')!;
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(date, "2026-09-06"); date.dispatchEvent(new Event("input", { bubbles: true })); button.click(); button.click(); await Promise.resolve(); });
     expect(returnAll).toHaveBeenCalledTimes(1);
-    expect(returnAll).toHaveBeenCalledWith({ commandId: expect.any(String), idempotencyKey: expect.any(String), rentalId: active.id, expectedVersion: 8 });
+    expect(returnAll).toHaveBeenCalledWith({ commandId: expect.any(String), idempotencyKey: expect.any(String), rentalId: active.id, actualReturnDate: "2026-09-06", expectedVersion: 8 });
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
