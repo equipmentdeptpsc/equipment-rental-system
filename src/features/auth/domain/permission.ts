@@ -7,9 +7,10 @@ export const PERMISSIONS = {
     "equipment.delete",
     "equipment.restore",
   ],
-  assignment: ["assignment.read", "assignment.manage"],
+  assignment: ["assignment.read", "assignment.create", "assignment.manage"],
   rental: [
     "rental.read",
+    "rental.create",
     "rental.update",
     "rental.manage",
     "rental.release",

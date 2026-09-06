@@ -37,7 +37,7 @@ export default function NewRental() {
   const { configuration, commandRepositories } = useApplicationDependenciesCompatibility();
   const { hasPermission } = useAuth();
   const localCreation = canUseLegacyRentalMutations(configuration);
-  const remoteCreation = canUseCanonicalRemoteRentalMutations(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.manage");
+  const remoteCreation = canUseCanonicalRemoteRentalMutations(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.create");
   const creationAvailable = localCreation || remoteCreation;
   const remoteSubmission = useRef<{ commandId: string; idempotencyKey: string } | undefined>(undefined);
   const navigate =

@@ -46,7 +46,7 @@ export default function RentalPage() {
   const { hasPermission } = useAuth();
   const { billingStatement: billingStatementRepository } = dependencies.repositories;
   const mutationsAvailable = canUseLegacyRentalMutations(dependencies.configuration)
-    || (canUseCanonicalRemoteRentalMutations(dependencies.configuration) && Boolean(dependencies.commandRepositories.canonicalRental) && hasPermission("rental.manage"));
+    || (canUseCanonicalRemoteRentalMutations(dependencies.configuration) && Boolean(dependencies.commandRepositories.canonicalRental) && hasPermission("rental.create"));
   const rentalContext = useRental();
   const equipmentContext = useEquipment();
   const assignmentContext = useAssignment();
