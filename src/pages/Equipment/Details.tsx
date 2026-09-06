@@ -83,7 +83,7 @@ function LocalEquipmentDetails() {
   const { configuration, commandRepositories } = useApplicationDependenciesCompatibility();
   const { hasPermission } = useAuth();
   const rentalCreationAvailable = canUseLegacyRentalMutations(configuration)
-    || (canUseCanonicalRemoteRentalMutations(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.manage"));
+    || (canUseCanonicalRemoteRentalMutations(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.create"));
   const { id } = useParams();
 
   const { getEquipment } =

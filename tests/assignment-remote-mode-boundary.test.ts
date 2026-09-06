@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const authState = vi.hoisted(() => ({ permissions: new Set(["rental.manage"]) }));
+const authState = vi.hoisted(() => ({ permissions: new Set(["rental.create"]) }));
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => ({ hasPermission: (permission: string) => authState.permissions.has(permission) }) }));
 
 import { ApplicationDependencyProvider, createLocalApplicationDependencies, PersistenceMode, type ApplicationDependencies } from "@/app/composition";
@@ -45,7 +45,7 @@ async function render(element: React.ReactNode, dependencies = remoteDependencie
   return container;
 }
 
-afterEach(async () => { authState.permissions = new Set(["rental.manage"]); while (roots.length) await act(async () => roots.pop()?.unmount()); });
+afterEach(async () => { authState.permissions = new Set(["rental.create"]); while (roots.length) await act(async () => roots.pop()?.unmount()); });
 
 describe("canonical Assignment remote UI boundary", () => {
   it("keeps remote list empty when only a local Assignment exists", async () => {
@@ -93,20 +93,20 @@ describe("canonical Assignment remote UI boundary", () => {
   });
 
   it("enables canonical create only with permission, runtime flag, and repository", async () => {
-    authState.permissions.add("assignment.manage");
+    authState.permissions.add("assignment.create");
     const enabled = await render(createElement(NewAssignment));
     expect(enabled.textContent).toContain("Create a canonical remote Assignment.");
     const flagDisabled = await render(createElement(NewAssignment), remoteDependencies({ writesEnabled: false }));
     expect(flagDisabled.textContent).toContain("Assignment creation unavailable");
     const repositoryMissing = await render(createElement(NewAssignment), remoteDependencies({ assignmentRepository: false }));
     expect(repositoryMissing.textContent).toContain("Assignment creation unavailable");
-    authState.permissions.delete("assignment.manage");
+    authState.permissions.delete("assignment.create");
     const denied = await render(createElement(NewAssignment));
     expect(denied.textContent).toContain("Assignment creation unavailable");
   });
 
   it("submits canonical data, requests a canonical refresh, and navigates with the returned UUID", async () => {
-    authState.permissions.add("assignment.manage");
+    authState.permissions.add("assignment.create");
     const dependencies = remoteDependencies();
     const createdId = "11111111-1111-4111-8111-111111111111";
     const createAssignment = vi.fn(async () => ({ success: true as const, disposition: "ACCEPTED" as const, serverOccurredAt: "2026-08-23T00:00:00Z", refresh: [createdId], value: { ...assignment, id: createdId, companyId: "tenant", createdAt: "2026-08-23T00:00:00Z", updatedAt: "2026-08-23T00:00:00Z", rowVersion: 1 } }));
@@ -135,7 +135,7 @@ describe("canonical Assignment remote UI boundary", () => {
   });
 
   it("keeps Assigned Date required before invoking the canonical command", async () => {
-    authState.permissions.add("assignment.manage");
+    authState.permissions.add("assignment.create");
     const dependencies = remoteDependencies();
     const createAssignment = vi.fn();
     dependencies.commandRepositories.canonicalAssignment = { createAssignment };
@@ -152,7 +152,7 @@ describe("canonical Assignment remote UI boundary", () => {
   });
 
   it("keeps controlled canonical command failures on the form", async () => {
-    authState.permissions.add("assignment.manage");
+    authState.permissions.add("assignment.create");
     const dependencies = remoteDependencies();
     dependencies.commandRepositories.canonicalAssignment = { createAssignment: vi.fn(async () => ({ success: false as const, code: "EQUIPMENT_UNAVAILABLE" as const, message: "The selected Equipment is unavailable for Assignment.", retryable: false, refreshRequired: true })) };
     const container = await render(createElement(NewAssignment), dependencies, "/assignments/new");
