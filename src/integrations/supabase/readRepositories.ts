@@ -19,6 +19,7 @@ import { SupabaseOperatorCertificationRepository } from "@/features/operators/ce
 import { SupabaseEquipmentSubcategoryRepository } from "./SupabaseEquipmentSubcategoryRepository";
 import { SupabaseEquipmentMaintenanceSnapshotRepository } from "./SupabaseEquipmentMaintenanceSnapshotRepository";
 import { SupabaseCanonicalBookingReadRepository } from "./SupabaseCanonicalBookingReadRepository";
+import { SupabaseEquipmentAvailabilityRepository } from "./SupabaseEquipmentAvailabilityRepository";
 import { SupabaseEquipmentRentalLifecycleHistoryRepository } from "./SupabaseEquipmentRentalLifecycleHistoryRepository";
 import { SupabaseEquipmentLifecycleSummaryRepository } from "./SupabaseEquipmentLifecycleSummaryRepository";
 
@@ -35,6 +36,7 @@ export function createSupabaseReadRepositories(client: SupabaseClient, core: Rem
     deurs: new SupabaseReadRepository<DeurRecord>(client, { repositoryName: "DEUR", table: "deurs", columns: "*,deur_events(*)", searchColumns: ["deur_number", "operational_remarks"], mapRow: mapDeur }, core),
     rentalEquipmentLines: new SupabaseReadRepository<RentalEquipmentLine>(client, { repositoryName: "RentalEquipmentLine", table: "rental_equipment_lines", mapRow: mapRentalEquipmentLine }, core),
     canonicalBookings: new SupabaseCanonicalBookingReadRepository(client),
+    equipmentAvailability: new SupabaseEquipmentAvailabilityRepository(client),
     workDescriptions: new SupabaseReadRepository<WorkDescriptionRecord>(client, { repositoryName: "WorkDescription", table: "work_descriptions", searchColumns: ["code", "name"] }, core),
     canonicalAudit: new SupabaseReadRepository<CanonicalAuditEvent>(client, { repositoryName: "CanonicalAudit", table: "audit_log", columns: "id,company_id,aggregate_type,aggregate_id,action,actor_id,actor_name,occurred_at,correlation_id", searchColumns: ["aggregate_type", "aggregate_id", "action", "actor_id", "actor_name"], mapRow: mapCanonicalAudit }, core),
     certificationTypes: new SupabaseCertificationReadRepository(client),
