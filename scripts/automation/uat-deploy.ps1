@@ -18,6 +18,12 @@ if ($Kind -eq 'Migration') {
   if ($LASTEXITCODE -ne 0) { throw "uat-migration-push exited with $LASTEXITCODE" }
   Write-Host 'PASS uat-migration-push'
 } else {
+  & node (Join-Path $script:RepositoryRoot 'scripts\validate-uat-build.mjs')
+  if ($LASTEXITCODE -ne 0) { throw 'UAT application build configuration validation failed.' }
+  & node (Join-Path $script:RepositoryRoot 'node_modules\typescript\bin\tsc') -b
+  if ($LASTEXITCODE -ne 0) { throw 'UAT application TypeScript build failed.' }
+  & node (Join-Path $script:RepositoryRoot 'node_modules\vite\bin\vite.js') build
+  if ($LASTEXITCODE -ne 0) { throw 'UAT application Vite build failed.' }
   Invoke-LoggedStep 'uat-application-deploy' { & (Join-Path $script:BinRoot 'wrangler.cmd') deploy --env uat }
 }
 git rev-parse HEAD | Set-Content (Join-Path $script:ReportRoot 'last-deployed-commit.txt')

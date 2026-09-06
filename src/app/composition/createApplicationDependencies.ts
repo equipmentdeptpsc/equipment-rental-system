@@ -24,9 +24,13 @@ import { SupabaseEquipmentCommandRepository } from "@/integrations/supabase/Supa
 import { SupabaseCustomerCommandRepository } from "@/integrations/supabase/SupabaseCustomerCommandRepository";
 import { SupabaseEquipmentSubcategoryRepository, SupabaseEquipmentCategoryReadRepository } from "@/integrations/supabase/SupabaseEquipmentSubcategoryRepository";
 import { SupabaseEquipmentLifecycleSummaryRepository } from "@/integrations/supabase/SupabaseEquipmentLifecycleSummaryRepository";
+import { resolveRuntimeEnvironment } from "./runtimeEnvironment";
 
 export interface ApplicationRuntimeConfiguration { persistenceMode?:string;equipmentStatusSource?:string;supabaseUrl?:string;supabasePublishableKey?:string;remoteOperationalWritesEnabled?:boolean;operationalReadTransport?:string }
-export function normalizePersistenceMode(value: string | undefined): PersistenceMode { return value === PersistenceMode.Remote ? PersistenceMode.Remote : PersistenceMode.Local; }
+export function normalizePersistenceMode(value: string | undefined): PersistenceMode {
+  if (value === PersistenceMode.Remote || value === PersistenceMode.Local) return value;
+  throw new Error("Invalid persistence mode configuration.");
+}
 class MissingRemoteConfigurationRepository implements ReadOnlyEquipmentStatusRepository{
   readonly capabilities=createRemoteCapabilities("ReadOnly","SupportsPaging","SupportsOrdering");
   private failure(){return repositoryFailure("SUPABASE_CONFIGURATION_MISSING","Supabase Equipment Status mode requires browser-safe project configuration.",{context:{repository:"EquipmentStatus",required:"VITE_SUPABASE_URL,VITE_SUPABASE_PUBLISHABLE_KEY"},recoverability:"USER_ACTION_REQUIRED",recommendedAction:"Provide the Vite Supabase URL and publishable key, or set VITE_EQUIPMENT_STATUS_SOURCE=local."});}
@@ -36,7 +40,12 @@ class MissingRemoteCommandConfiguration implements DeurCommandRepository {
   private failure():Promise<DeurLifecycleCommandResult>{return Promise.resolve({success:false,code:"TRANSPORT_FAILURE",message:"Remote persistence configuration is missing.",retryable:false,refreshRequired:false});}
   startShift(){return this.failure();}startOrChangeActivity(){return this.failure();}stopCurrentActivity(){return this.failure();}completeShift(){return this.failure();}submitDeur(){return this.failure();}
 }
-export function readApplicationRuntimeConfiguration():ApplicationRuntimeConfiguration{const mode=normalizePersistenceMode(import.meta.env.VITE_PERSISTENCE_MODE);const value=readRemoteConfiguration({VITE_SUPABASE_URL:import.meta.env.VITE_SUPABASE_URL,VITE_SUPABASE_PUBLISHABLE_KEY:import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY},mode===PersistenceMode.Remote?"supabase":import.meta.env.VITE_EQUIPMENT_STATUS_SOURCE);return{persistenceMode:mode,equipmentStatusSource:value.source,supabaseUrl:value.supabaseUrl,supabasePublishableKey:value.supabasePublishableKey,remoteOperationalWritesEnabled:import.meta.env.VITE_REMOTE_OPERATIONAL_WRITES_ENABLED==="true",operationalReadTransport:import.meta.env.VITE_OPERATIONAL_READ_TRANSPORT};}
+export function readApplicationRuntimeConfiguration():ApplicationRuntimeConfiguration{
+  const resolution=resolveRuntimeEnvironment({persistenceMode:import.meta.env.VITE_PERSISTENCE_MODE,supabaseUrl:import.meta.env.VITE_SUPABASE_URL,supabasePublishableKey:import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,hostname:typeof window==="undefined"?"localhost":window.location.hostname});
+  if(resolution.kind==="configuration-error")throw new Error(resolution.message);
+  const mode=normalizePersistenceMode(resolution.persistenceMode);const value=readRemoteConfiguration({VITE_SUPABASE_URL:import.meta.env.VITE_SUPABASE_URL,VITE_SUPABASE_PUBLISHABLE_KEY:import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY},mode===PersistenceMode.Remote?"supabase":import.meta.env.VITE_EQUIPMENT_STATUS_SOURCE);
+  return{persistenceMode:mode,equipmentStatusSource:value.source,supabaseUrl:value.supabaseUrl,supabasePublishableKey:value.supabasePublishableKey,remoteOperationalWritesEnabled:import.meta.env.VITE_REMOTE_OPERATIONAL_WRITES_ENABLED==="true",operationalReadTransport:import.meta.env.VITE_OPERATIONAL_READ_TRANSPORT};
+}
 export function createApplicationDependencies(configuration:ApplicationRuntimeConfiguration=readApplicationRuntimeConfiguration(),overrides:ApplicationDependencyOverrides={}):ApplicationDependencies{
   const source:EquipmentStatusSource=configuration.persistenceMode==="remote"||configuration.equipmentStatusSource==="supabase"?"supabase":"local";
   if(source==="local")return createLocalApplicationDependencies(overrides);

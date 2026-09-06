@@ -12,6 +12,8 @@
     "typecheck:worker": "tsc --noEmit -p tsconfig.worker.json",
     "build:worker": "wrangler deploy --dry-run --outdir .worker-dist",
     "build": "tsc -b && vite build",
+    "validate:env:uat": "node scripts/validate-uat-build.mjs",
+    "build:uat": "node scripts/validate-uat-build.mjs && tsc -b && vite build",
     "test": "vitest run",
     "verify": "npm test && npx tsc --noEmit -p tsconfig.test.json && npm run build",
     "lint": "eslint .",
