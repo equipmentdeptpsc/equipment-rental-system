@@ -46,6 +46,21 @@ export interface CanonicalBookingCalendarSearchInput extends CanonicalBookingSea
   windowEnd: string;
 }
 
+/**
+ * Server-enforced operational queue window. Callers cannot provide a status
+ * because each queue owns its canonical lifecycle predicate.
+ */
+export interface CanonicalBookingOperationalSearchInput {
+  windowStart: string;
+  windowEnd: string;
+  customerId?: string;
+  projectId?: string;
+  equipmentId?: string;
+  rentalNumberSearch?: string;
+  offset?: number;
+  limit?: number;
+}
+
 export interface CanonicalBookingPage {
   rows: readonly CanonicalBookingListItem[];
   totalCount: number;
@@ -57,6 +72,8 @@ export interface CanonicalBookingPage {
 export interface CanonicalBookingReadRepository {
   searchCanonicalBookingRows(input?: CanonicalBookingSearchInput): Promise<RepositoryResult<CanonicalBookingPage>>;
   searchCanonicalBookingCalendarRows(input: CanonicalBookingCalendarSearchInput): Promise<RepositoryResult<CanonicalBookingPage>>;
+  searchCanonicalUpcomingReleaseRows(input: CanonicalBookingOperationalSearchInput): Promise<RepositoryResult<CanonicalBookingPage>>;
+  searchCanonicalExpectedReturnRows(input: CanonicalBookingOperationalSearchInput): Promise<RepositoryResult<CanonicalBookingPage>>;
 }
 
 /** Local compatibility mode intentionally has no Rental-backed Booking projection. */
@@ -71,6 +88,14 @@ export class LocalCanonicalBookingReadRepository implements CanonicalBookingRead
     return repositoryFailure("REMOTE_BOOKING_READ_UNAVAILABLE", "Canonical Rental Bookings are available only in remote mode.", {
       context: { repository: "CanonicalBooking" }, recoverability: "USER_ACTION_REQUIRED", recommendedAction: "Use the existing local Assignment compatibility view.",
     });
+  }
+
+  async searchCanonicalUpcomingReleaseRows(): Promise<RepositoryResult<CanonicalBookingPage>> {
+    return this.searchCanonicalBookingCalendarRows();
+  }
+
+  async searchCanonicalExpectedReturnRows(): Promise<RepositoryResult<CanonicalBookingPage>> {
+    return this.searchCanonicalBookingCalendarRows();
   }
 }
 
