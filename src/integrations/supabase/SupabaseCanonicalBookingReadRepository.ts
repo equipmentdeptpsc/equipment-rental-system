@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { repositoryFailure, repositorySuccess, type RepositoryResult } from "@/core/persistence";
-import { canonicalBookingStatuses, type CanonicalBookingCalendarSearchInput, type CanonicalBookingListItem, type CanonicalBookingPage, type CanonicalBookingReadRepository, type CanonicalBookingSearchInput, type CanonicalBookingSort } from "@/features/booking/canonical";
+import { canonicalBookingStatuses, type CanonicalBookingCalendarSearchInput, type CanonicalBookingListItem, type CanonicalBookingOperationalSearchInput, type CanonicalBookingPage, type CanonicalBookingReadRepository, type CanonicalBookingSearchInput, type CanonicalBookingSort } from "@/features/booking/canonical";
 
 type RpcClient = Pick<SupabaseClient, "schema">;
 const statuses = new Set<string>(canonicalBookingStatuses);
@@ -73,6 +73,31 @@ export class SupabaseCanonicalBookingReadRepository implements CanonicalBookingR
     if (error || !Array.isArray(data)) return repositoryFailure("REMOTE_READ_FAILED", "Canonical Rental Bookings could not be loaded.", { context: { repository: "CanonicalBooking" }, recoverability: "RETRYABLE", recommendedAction: "Retry the request." });
     const rows = data.map(mapRow);
     if (rows.some((row) => !row)) return repositoryFailure("REMOTE_ROW_MALFORMED", "Canonical Rental Bookings could not be read safely.", { context: { repository: "CanonicalBooking" }, recoverability: "MANUAL_RECONCILIATION", recommendedAction: "Repair the canonical Booking read projection." });
+    const first = data[0] as Record<string, unknown> | undefined, totalCount = typeof first?.total_count === "number" && first.total_count >= 0 ? first.total_count : 0;
+    return repositorySuccess({ rows: rows as CanonicalBookingListItem[], totalCount, offset, limit, hasMore: offset + rows.length < totalCount });
+  }
+
+  async searchCanonicalUpcomingReleaseRows(input: CanonicalBookingOperationalSearchInput): Promise<RepositoryResult<CanonicalBookingPage>> {
+    return this.searchOperationalRows("search_upcoming_release_rows", input);
+  }
+
+  async searchCanonicalExpectedReturnRows(input: CanonicalBookingOperationalSearchInput): Promise<RepositoryResult<CanonicalBookingPage>> {
+    return this.searchOperationalRows("search_expected_return_rows", input);
+  }
+
+  private async searchOperationalRows(rpcName: "search_upcoming_release_rows" | "search_expected_return_rows", input: CanonicalBookingOperationalSearchInput): Promise<RepositoryResult<CanonicalBookingPage>> {
+    if (!calendarWindowIsValid(input.windowStart, input.windowEnd)) return repositoryFailure("INVALID_OPERATIONAL_WINDOW", "Choose an inclusive operational window of no more than 93 days.", {
+      context: { repository: "CanonicalBooking" }, recoverability: "USER_ACTION_REQUIRED", recommendedAction: "Choose a valid, shorter calendar period.",
+    });
+    const limit = boundedLimit(input.limit), offset = boundedOffset(input.offset);
+    const { data, error } = await this.client.schema("erp").rpc(rpcName, {
+      p_window_start: input.windowStart, p_window_end: input.windowEnd,
+      p_customer_id: text(input.customerId) ?? null, p_project_id: text(input.projectId) ?? null, p_equipment_id: text(input.equipmentId) ?? null,
+      p_rental_number_search: text(input.rentalNumberSearch) ?? null, p_offset: offset, p_limit: limit,
+    });
+    if (error || !Array.isArray(data)) return repositoryFailure("REMOTE_READ_FAILED", "Operational Rental Bookings could not be loaded.", { context: { repository: "CanonicalBooking" }, recoverability: "RETRYABLE", recommendedAction: "Retry the request." });
+    const rows = data.map(mapRow);
+    if (rows.some((row) => !row)) return repositoryFailure("REMOTE_ROW_MALFORMED", "Operational Rental Bookings could not be read safely.", { context: { repository: "CanonicalBooking" }, recoverability: "MANUAL_RECONCILIATION", recommendedAction: "Repair the canonical Booking read projection." });
     const first = data[0] as Record<string, unknown> | undefined, totalCount = typeof first?.total_count === "number" && first.total_count >= 0 ? first.total_count : 0;
     return repositorySuccess({ rows: rows as CanonicalBookingListItem[], totalCount, offset, limit, hasMore: offset + rows.length < totalCount });
   }
