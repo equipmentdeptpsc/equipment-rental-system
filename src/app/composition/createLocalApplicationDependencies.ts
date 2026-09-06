@@ -32,6 +32,7 @@ import { LocalEquipmentMaintenanceSnapshotRepository } from "@/features/maintena
 import { LocalEquipmentLifecycleSummaryRepository } from "@/features/equipment/history/canonical";
 import { LocalEquipmentRentalLifecycleHistoryRepository } from "@/features/rental/history/canonical";
 import { LocalCanonicalBookingReadRepository } from "@/features/booking/canonical";
+import { LocalEquipmentAvailabilityRepository } from "@/features/equipment/availability/canonical";
 import { maintenanceRepository } from "@/features/maintenance/repository";
 import { LocalDeurCommandRepository } from "@/features/rental/deur/commands/LocalDeurCommandRepository";
 import { subscribeDeurChanges } from "@/features/rental/deur/synchronization/deurChangeNotifications";
@@ -118,6 +119,7 @@ export function createLocalApplicationDependencies(overrides: ApplicationDepende
     lifecycleSummary: new LocalEquipmentLifecycleSummaryRepository(),
     rentalLifecycleHistory: new LocalEquipmentRentalLifecycleHistoryRepository(),
     canonicalBookings: new LocalCanonicalBookingReadRepository(),
+    equipmentAvailability: new LocalEquipmentAvailabilityRepository(),
     operatorCertifications: new LocalOperatorCertificationRepository(),
   };
   const synchronization = overrides.synchronization ?? (() => {
