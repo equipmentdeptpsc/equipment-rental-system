@@ -82,7 +82,7 @@ export function useCanonicalAssignmentData(): CanonicalAssignmentLoadState {
         }),
         projects: projects.value.items.map((record) => {
           const canonical = record as unknown as Record<string, unknown>;
-          return { id: record.id, projectCode: text(canonical.projectCode) || undefined, name: text(canonical.name), active: canonical.active === true };
+          return { id: record.id, projectCode: text(canonical.projectCode) || undefined, name: text(canonical.name), active: canonical.active === true || canonical.status === "Active" };
         }),
       };
       setState({ status: data.assignments.length ? "loaded" : "empty", data });
