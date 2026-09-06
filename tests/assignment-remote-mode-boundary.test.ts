@@ -19,7 +19,7 @@ const roots: Root[] = [];
 const page = (items: unknown[]) => repositorySuccess({ items, nextCursor: undefined });
 const assignment = { id: "canonical-assignment", equipmentId: "canonical-equipment", operatorId: "canonical-operator", projectId: "canonical-project", assignedDate: "2026-08-23", expectedReturn: "2026-08-24", remarks: "Canonical", status: "Active" as const };
 
-function remoteDependencies(input: { assignments?: unknown[]; failure?: boolean; writesEnabled?: boolean; assignmentRepository?: boolean } = {}): ApplicationDependencies {
+function remoteDependencies(input: { assignments?: unknown[]; failure?: boolean; writesEnabled?: boolean; assignmentCreateEnabled?: boolean; assignmentRepository?: boolean } = {}): ApplicationDependencies {
   const local = createLocalApplicationDependencies();
   const failure = repositoryFailure("REMOTE_FAILED", "failed", { context: {}, recoverability: "RETRYABLE", recommendedAction: "Retry" });
   const repository = (items: unknown[]) => ({ ...local.readRepositories.assignments, list: vi.fn(async () => input.failure ? failure : page(items)) });
@@ -34,7 +34,7 @@ function remoteDependencies(input: { assignments?: unknown[]; failure?: boolean;
       projects: repository([{ id: "canonical-project", project_code: "REMOTE", name: "Remote Project", active: true }]),
     } as ApplicationDependencies["readRepositories"],
     commandRepositories: { ...local.commandRepositories, canonicalRental: { readReferenceData: vi.fn(async () => ({ success: true, value: { costCodes: [], activityCodes: [] } })) } as unknown as ApplicationDependencies["commandRepositories"]["canonicalRental"], ...((input.assignmentRepository ?? true) ? { canonicalAssignment: { createAssignment: vi.fn() } } : {}) },
-    configuration: { ...local.configuration, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: input.writesEnabled ?? true },
+    configuration: { ...local.configuration, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: input.writesEnabled ?? true, remoteAssignmentCreateEnabled: input.assignmentCreateEnabled ?? false },
   };
 }
 
@@ -98,6 +98,8 @@ describe("canonical Assignment remote UI boundary", () => {
     expect(enabled.textContent).toContain("Create a canonical remote Assignment.");
     const flagDisabled = await render(createElement(NewAssignment), remoteDependencies({ writesEnabled: false }));
     expect(flagDisabled.textContent).toContain("Assignment creation unavailable");
+    const createOnly = await render(createElement(NewAssignment), remoteDependencies({ writesEnabled: false, assignmentCreateEnabled: true }));
+    expect(createOnly.textContent).toContain("Create a canonical remote Assignment.");
     const repositoryMissing = await render(createElement(NewAssignment), remoteDependencies({ assignmentRepository: false }));
     expect(repositoryMissing.textContent).toContain("Assignment creation unavailable");
     authState.permissions.delete("assignment.create");
@@ -172,5 +174,6 @@ describe("canonical Assignment remote UI boundary", () => {
     const local = createLocalApplicationDependencies().configuration;
     expect(getAssignmentRuntimeCapability(local)).toMatchObject({ legacyReads: true, legacyMutations: true, canonicalReads: false });
     expect(getAssignmentRuntimeCapability({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: true }, true)).toMatchObject({ legacyReads: false, legacyMutations: false, canonicalReads: true, canonicalMutations: true });
+    expect(getAssignmentRuntimeCapability({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteAssignmentCreateEnabled: true }, true)).toMatchObject({ canonicalMutations: false, canonicalCreation: true });
   });
 });

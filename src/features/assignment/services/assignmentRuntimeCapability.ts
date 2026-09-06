@@ -8,11 +8,13 @@ export interface AssignmentRuntimeCapability {
   legacyReads: boolean;
   legacyMutations: boolean;
   canonicalMutations: boolean;
+  canonicalCreation: boolean;
 }
 
 export function getAssignmentRuntimeCapability(configuration: Configuration, canonicalRepositoryAvailable = false): AssignmentRuntimeCapability {
   const local = configuration.persistenceMode === PersistenceMode.Local;
-  return { canonicalReads: !local, legacyReads: local, legacyMutations: local, canonicalMutations: !local && configuration.remoteOperationalWritesEnabled && canonicalRepositoryAvailable };
+  const canonicalMutations = !local && configuration.remoteOperationalWritesEnabled && canonicalRepositoryAvailable;
+  return { canonicalReads: !local, legacyReads: local, legacyMutations: local, canonicalMutations, canonicalCreation: !local && canonicalRepositoryAvailable && (configuration.remoteOperationalWritesEnabled || configuration.remoteAssignmentCreateEnabled === true) };
 }
 
 export function canStartRentalFromCanonicalAssignment(input: {

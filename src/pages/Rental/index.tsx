@@ -28,7 +28,7 @@ import { projectRentalCollectionStatus } from "@/features/rental/collections/col
 import { projectActiveRentalEngagements } from "@/features/rental/services/projectActiveRentalEngagements";
 import { useRentalListData } from "@/features/rental/hooks/useRentalListData";
 import { filterRentalList } from "@/features/rental/services/filterRentalList";
-import { canUseCanonicalRemoteRentalMutations, canUseLegacyRentalMutations, REMOTE_RENTAL_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/rental/services/rentalRuntimeCapability";
+import { canUseCanonicalRemoteRentalCreation, canUseLegacyRentalMutations, REMOTE_RENTAL_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/rental/services/rentalRuntimeCapability";
 import { useAuth } from "@/features/auth/AuthContext";
 import FilterBar from "@/components/ui/FilterBar";
 import { LoadingState, ErrorState, EmptyDataState } from "@/components/ui/AsyncState";
@@ -46,7 +46,7 @@ export default function RentalPage() {
   const { hasPermission } = useAuth();
   const { billingStatement: billingStatementRepository } = dependencies.repositories;
   const mutationsAvailable = canUseLegacyRentalMutations(dependencies.configuration)
-    || (canUseCanonicalRemoteRentalMutations(dependencies.configuration) && Boolean(dependencies.commandRepositories.canonicalRental) && hasPermission("rental.create"));
+    || (canUseCanonicalRemoteRentalCreation(dependencies.configuration) && Boolean(dependencies.commandRepositories.canonicalRental) && hasPermission("rental.create"));
   const rentalContext = useRental();
   const equipmentContext = useEquipment();
   const assignmentContext = useAssignment();

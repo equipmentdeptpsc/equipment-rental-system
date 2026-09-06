@@ -23,7 +23,7 @@ import { resolveAssignmentRentalLookup } from "@/features/rental/utils/assignmen
 import { isValidBusinessEmail, normalizeBusinessEmail } from "@/shared/validation/email";
 import { useApplicationDependenciesCompatibility } from "@/app/composition";
 import { canUseLegacyRentalMutations, REMOTE_RENTAL_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/rental/services/rentalRuntimeCapability";
-import { canUseCanonicalRemoteRentalMutations } from "@/features/rental/services/rentalRuntimeCapability";
+import { canUseCanonicalRemoteRentalCreation } from "@/features/rental/services/rentalRuntimeCapability";
 import { requestCanonicalRentalRefresh } from "@/features/rental/remote/canonicalRentalRefresh";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useMemo, useRef } from "react";
@@ -37,7 +37,7 @@ export default function NewRental() {
   const { configuration, commandRepositories } = useApplicationDependenciesCompatibility();
   const { hasPermission } = useAuth();
   const localCreation = canUseLegacyRentalMutations(configuration);
-  const remoteCreation = canUseCanonicalRemoteRentalMutations(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.create");
+  const remoteCreation = canUseCanonicalRemoteRentalCreation(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.create");
   const creationAvailable = localCreation || remoteCreation;
   const remoteSubmission = useRef<{ commandId: string; idempotencyKey: string } | undefined>(undefined);
   const navigate =

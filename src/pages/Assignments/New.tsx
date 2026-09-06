@@ -48,7 +48,7 @@ export default function NewAssignment() {
   const { configuration, commandRepositories } = useApplicationDependenciesCompatibility();
   const { hasPermission } = useAuth();
   const capability = getAssignmentRuntimeCapability(configuration, Boolean(commandRepositories.canonicalAssignment));
-  if (capability.canonicalMutations && hasPermission("assignment.create")) return <RemoteAssignmentForm />;
+  if (capability.canonicalCreation && hasPermission("assignment.create")) return <RemoteAssignmentForm />;
   if (!capability.legacyMutations) return <div className="mx-auto max-w-3xl space-y-4"><PageHeader title="New Assignment" description="Create a clear equipment booking for a project and operator." /><div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100" role="status"><h2 className="font-semibold">Assignment creation unavailable</h2><p className="mt-1 text-sm">{REMOTE_ASSIGNMENT_MUTATION_UNAVAILABLE_MESSAGE}</p></div></div>;
   return <LocalNewAssignment />;
 }
