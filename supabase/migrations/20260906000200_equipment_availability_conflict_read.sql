@@ -37,7 +37,6 @@ AS $$
   JOIN erp.rentals AS rental
     ON rental.id = line.rental_id
    AND rental.company_id = line.company_id
-   AND rental.deleted_at IS NULL
   WHERE line.deleted_at IS NULL
     AND erp.can_read_company_row(line.company_id)
     AND line.status IN ('Draft', 'Assigned', 'Reserved', 'Released', 'Active')
@@ -60,7 +59,6 @@ AS $$
       JOIN erp.rentals AS rental
         ON rental.id = line.rental_id
        AND rental.company_id = line.company_id
-       AND rental.deleted_at IS NULL
       WHERE line.deleted_at IS NULL
         AND line.assignment_id = assignment.id
         AND line.equipment_id = assignment.equipment_id
