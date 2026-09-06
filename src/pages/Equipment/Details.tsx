@@ -18,7 +18,7 @@ import { getEquipmentCostCodeDisplay } from "@/features/equipment/utils/equipmen
 import { presentEquipmentStatus } from "@/features/equipment/utils/equipmentStatusPresentation";
 import { validateEquipmentAssignment } from "@/features/assignment/utils/assignmentValidation";
 import { useApplicationDependenciesCompatibility } from "@/app/composition";
-import { canUseCanonicalRemoteRentalMutations, canUseLegacyRentalMutations } from "@/features/rental/services/rentalRuntimeCapability";
+import { canUseCanonicalRemoteRentalCreation, canUseLegacyRentalMutations } from "@/features/rental/services/rentalRuntimeCapability";
 import { useAuth } from "@/features/auth/AuthContext";
 import { getEquipmentRuntimeCapability } from "@/features/equipment/services/equipmentRuntimeCapability";
 import { useCanonicalEquipmentData } from "@/features/equipment/hooks/useCanonicalEquipmentData";
@@ -83,7 +83,7 @@ function LocalEquipmentDetails() {
   const { configuration, commandRepositories } = useApplicationDependenciesCompatibility();
   const { hasPermission } = useAuth();
   const rentalCreationAvailable = canUseLegacyRentalMutations(configuration)
-    || (canUseCanonicalRemoteRentalMutations(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.create"));
+    || (canUseCanonicalRemoteRentalCreation(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.create"));
   const { id } = useParams();
 
   const { getEquipment } =

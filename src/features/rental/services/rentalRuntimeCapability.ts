@@ -13,6 +13,11 @@ export function canUseCanonicalRemoteRentalMutations(configuration: RentalRuntim
   return configuration.persistenceMode === PersistenceMode.Remote && configuration.remoteOperationalWritesEnabled;
 }
 
+export function canUseCanonicalRemoteRentalCreation(configuration: RentalRuntimeConfiguration): boolean {
+  return configuration.persistenceMode === PersistenceMode.Remote
+    && (configuration.remoteOperationalWritesEnabled || configuration.remoteRentalCreateEnabled === true);
+}
+
 export function canUseAnyRentalMutations(configuration: RentalRuntimeConfiguration, canonicalRepositoryAvailable: boolean): boolean {
   return canUseLegacyRentalMutations(configuration)
     || (canUseCanonicalRemoteRentalMutations(configuration) && canonicalRepositoryAvailable);

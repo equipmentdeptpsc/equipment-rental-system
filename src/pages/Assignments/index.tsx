@@ -29,7 +29,7 @@ function RemoteAssignments() {
   const state = useCanonicalAssignmentData();
   if (state.status === "loading") return <div className="p-8 text-slate-500">Loading canonical Assignments…</div>;
   if (state.status === "error") return <div className="p-8" role="alert">{state.message}<button className="ml-3 underline" onClick={state.retry}>Retry</button></div>;
-  const canCreate = getAssignmentRuntimeCapability(configuration, Boolean(commandRepositories.canonicalAssignment)).canonicalMutations && hasPermission("assignment.create");
+  const canCreate = getAssignmentRuntimeCapability(configuration, Boolean(commandRepositories.canonicalAssignment)).canonicalCreation && hasPermission("assignment.create");
   return <div className="app-page"><PageHeader title="Bookings" description="Coordinate equipment, operators, and projects across assignments and rental lines." actions={canCreate ? <Link to="/assignments/new"><Button className="bg-[#f0a93a] text-[#071a33] hover:bg-[#d99a2f]">New Booking</Button></Link> : undefined} />{!canCreate && <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">{REMOTE_ASSIGNMENT_MUTATION_UNAVAILABLE_MESSAGE}</p>}{state.status === "empty" ? <div className="app-card p-10 text-center text-slate-500">No canonical Bookings found.</div> : <RemoteBookingTabs data={state.data} />}</div>;
 }
 

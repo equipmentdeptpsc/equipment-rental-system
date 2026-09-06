@@ -21,7 +21,7 @@ import { displayAssignmentExpectedReturn, getAssignmentNumber } from "@/features
 import { useActivityCodes } from "@/features/masters/activity-code";
 import AssignmentActivityCodeDisplay from "@/features/assignment/components/AssignmentActivityCodeDisplay";
 import { useApplicationDependenciesCompatibility } from "@/app/composition";
-import { canUseCanonicalRemoteRentalMutations, canUseLegacyRentalMutations, REMOTE_RENTAL_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/rental/services/rentalRuntimeCapability";
+import { canUseCanonicalRemoteRentalCreation, canUseLegacyRentalMutations, REMOTE_RENTAL_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/rental/services/rentalRuntimeCapability";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useCanonicalAssignmentData } from "@/features/assignment/hooks/useCanonicalAssignmentData";
 import { canStartRentalFromCanonicalAssignment, getAssignmentRuntimeCapability, REMOTE_ASSIGNMENT_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/assignment/services/assignmentRuntimeCapability";
@@ -43,7 +43,7 @@ function RemoteAssignmentDetails() {
   const equipment = state.data.equipment.find((record) => record.id === assignment.equipmentId);
   const operator = state.data.operators.find((record) => record.id === assignment.operatorId);
   const project = state.data.projects.find((record) => record.id === assignment.projectId);
-  const rentalCreationAvailable = canUseCanonicalRemoteRentalMutations(configuration) && Boolean(commandRepositories.canonicalRental);
+  const rentalCreationAvailable = canUseCanonicalRemoteRentalCreation(configuration) && Boolean(commandRepositories.canonicalRental);
   const showStartRental = canStartRentalFromCanonicalAssignment({ assignment, rentalCreationAvailable, hasRentalManagePermission: hasPermission("rental.create") });
   return <div className="space-y-6 p-8"><div><h1 className="text-3xl font-bold">Assignment {getAssignmentNumber(assignment.id, state.data.assignments)}</h1><p className="text-slate-500">Canonical remote Assignment details.</p></div><div className="rounded-xl border bg-white p-6 shadow-sm"><div className="grid gap-6 md:grid-cols-2"><Info label="Equipment" value={equipment ? `${equipment.assetNo} - ${equipment.equipmentName}` : "Unknown canonical Equipment"} /><Info label="Operator" value={operator?.name || "Unknown canonical Operator"} /><Info label="Project" value={project?.name || "Unknown canonical Project"} /><Info label="Activity Code ID" value={assignment.activityCodeId || "-"} /><Info label="Status" value={assignment.status} /><Info label="Assigned Date" value={assignment.assignedDate} /><Info label="End Date / Expected Return" value={displayAssignmentExpectedReturn(assignment.expectedReturn)} /></div><div className="mt-6"><div className="text-sm font-medium text-slate-500">Remarks</div><div className="mt-1 rounded-lg bg-slate-50 p-4">{assignment.remarks || "-"}</div></div></div><p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">{REMOTE_ASSIGNMENT_MUTATION_UNAVAILABLE_MESSAGE}</p><div className="flex flex-wrap gap-3">{showStartRental && <Link to={`/rentals/new?assignment=${encodeURIComponent(assignment.id)}`}><Button>Start Rental</Button></Link>}</div></div>;
 }
@@ -52,7 +52,7 @@ function LocalAssignmentDetails() {
   const { configuration, commandRepositories } = useApplicationDependenciesCompatibility();
   const { hasPermission } = useAuth();
   const rentalCreationAvailable = canUseLegacyRentalMutations(configuration)
-    || (canUseCanonicalRemoteRentalMutations(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.create"));
+    || (canUseCanonicalRemoteRentalCreation(configuration) && Boolean(commandRepositories.canonicalRental) && hasPermission("rental.create"));
   const { id } = useParams();
 
   const navigate = useNavigate();

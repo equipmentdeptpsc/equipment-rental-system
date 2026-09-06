@@ -15,6 +15,8 @@ describe("Catalog 2.0 canonical Rental create authorization", () => {
     expect(router).toContain('path: "rentals/new", element: permitted("rental.create", <NewRental />)');
     expect(newRental).toContain('hasPermission("rental.create")');
     expect(rentalList).toContain('hasPermission("rental.create")');
+    expect(newRental).toContain("canUseCanonicalRemoteRentalCreation(configuration)");
+    expect(rentalList).toContain("canUseCanonicalRemoteRentalCreation(dependencies.configuration)");
   });
 
   it("repairs only the canonical draft-command permission without role changes", () => {
