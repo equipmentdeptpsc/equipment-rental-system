@@ -31,7 +31,7 @@ function remoteDependencies(input: { assignments?: unknown[]; failure?: boolean;
       assignments: repository(input.assignments ?? []),
       equipment: repository([{ id: "canonical-equipment", assetNo: "ME-REMOTE", equipmentName: "Remote Equipment", statusId: "equipment-status-available", active: true }]),
       operators: repository([{ id: "canonical-operator", name: "Remote Operator", status: "Active" }]),
-      projects: repository([{ id: "canonical-project", project_code: "REMOTE", name: "Remote Project", active: true }]),
+      projects: repository([{ id: "canonical-project", projectCode: "REMOTE", name: "Remote Project", status: "Active" }]),
     } as ApplicationDependencies["readRepositories"],
     commandRepositories: { ...local.commandRepositories, canonicalRental: { readReferenceData: vi.fn(async () => ({ success: true, value: { costCodes: [], activityCodes: [] } })) } as unknown as ApplicationDependencies["commandRepositories"]["canonicalRental"], ...((input.assignmentRepository ?? true) ? { canonicalAssignment: { createAssignment: vi.fn() } } : {}) },
     configuration: { ...local.configuration, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: input.writesEnabled ?? true, remoteAssignmentCreateEnabled: input.assignmentCreateEnabled ?? false },
