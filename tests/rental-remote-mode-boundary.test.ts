@@ -6,7 +6,7 @@ import { ApplicationDependencyProvider, createLocalApplicationDependencies, Pers
 import { repositoryFailure, repositorySuccess } from "@/core/persistence";
 import { useRentalListData, type RentalListData } from "@/features/rental/hooks/useRentalListData";
 import type { CanonicalRentalReferenceData, CanonicalRentalRemoteRepository } from "@/features/rental/remote/contracts";
-import { canUseAnyRentalMutations, canUseCanonicalRemoteRentalApprovalMutations, canUseCanonicalRemoteRentalCommercialTermsMutation, canUseCanonicalRemoteRentalCreation, canUseCanonicalRemoteRentalMutations, canUseCanonicalRemoteRentalReserveMutation, canUseLegacyRentalMutations } from "@/features/rental/services/rentalRuntimeCapability";
+import { canUseAnyRentalMutations, canUseCanonicalRemoteRentalApprovalMutations, canUseCanonicalRemoteRentalCommercialTermsMutation, canUseCanonicalRemoteRentalCreation, canUseCanonicalRemoteRentalMutations, canUseCanonicalRemoteRentalReleaseMutation, canUseCanonicalRemoteRentalReserveMutation, canUseLegacyRentalMutations } from "@/features/rental/services/rentalRuntimeCapability";
 
 const empty: RentalListData = { rentals: [], rentalEquipmentLines: [], equipment: [], assignments: [], operators: [], projects: [], customers: [], costCodes: [], activityCodes: [] };
 const fallback: RentalListData = { ...empty, rentals: [{ id: "local-rental", status: "Draft" } as RentalListData["rentals"][number]] };
@@ -73,10 +73,14 @@ describe("Rental remote-mode boundary", () => {
     expect(canUseCanonicalRemoteRentalReserveMutation({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false })).toBe(false);
     expect(canUseCanonicalRemoteRentalReserveMutation({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteRentalReserveEnabled: true })).toBe(true);
     expect(canUseCanonicalRemoteRentalReserveMutation({ ...local, persistenceMode: PersistenceMode.Local, remoteRentalReserveEnabled: true })).toBe(false);
+    expect(canUseCanonicalRemoteRentalReleaseMutation({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false })).toBe(false);
+    expect(canUseCanonicalRemoteRentalReleaseMutation({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteRentalReleaseEnabled: true })).toBe(true);
+    expect(canUseCanonicalRemoteRentalReleaseMutation({ ...local, persistenceMode: PersistenceMode.Local, remoteRentalReleaseEnabled: true })).toBe(false);
     expect(canUseCanonicalRemoteRentalApprovalMutations({ ...local, persistenceMode: PersistenceMode.Local, remoteRentalApprovalEnabled: true })).toBe(false);
     expect(canUseCanonicalRemoteRentalMutations({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteRentalApprovalEnabled: true })).toBe(false);
     expect(canUseAnyRentalMutations({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteRentalApprovalEnabled: true }, true)).toBe(true);
     expect(canUseAnyRentalMutations({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteRentalReserveEnabled: true }, true)).toBe(true);
+    expect(canUseAnyRentalMutations({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteRentalReleaseEnabled: true }, true)).toBe(true);
     expect(canUseAnyRentalMutations({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: true }, true)).toBe(true);
     expect(canUseAnyRentalMutations({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: true }, false)).toBe(false);
   });
