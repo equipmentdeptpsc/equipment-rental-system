@@ -43,6 +43,7 @@ function dependencies(): { value: ApplicationDependencies; updateTerms: ReturnTy
   const canonicalRental: CanonicalRentalRemoteRepository = {
     readWorkspace: vi.fn(async () => ({ success: true as const, value: { rentalId: rental.id, contracts: [], commercialSnapshots: [] } })),
     readReferenceData: vi.fn(async () => ({ success: true as const, value: { costCodes: [{ id: "cost-1", code: "COST", name: "Cost", active: true, sortOrder: 0 }], activityCodes: [{ id: "activity-1", code: "ACT", name: "Activity", active: true, sortOrder: 0 }] } })),
+    getReleaseReadiness: vi.fn(),
     createDraft: vi.fn(), updateTerms, submitApproval: vi.fn(), decideApproval: vi.fn(), reserve: vi.fn(), release: vi.fn(), activate: vi.fn(),
   };
   const canonicalWorkList = vi.fn(async () => page([]));

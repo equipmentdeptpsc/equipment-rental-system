@@ -17,6 +17,8 @@ export interface CanonicalReferenceCode { id: string; code: string; name: string
 export interface DeurExpectationDisposition { id:string; rentalId:string; rentalEquipmentLineId:string; workDate:string; expectationFingerprint:string; disposition:"WAIVED"; reason:string; createdAt:string; createdBy:string }
 export interface CanonicalRentalWorkspace { rentalId: string; contracts: CanonicalRentalContract[]; commercialSnapshots: CanonicalCommercialSnapshot[]; expectationDispositions?: DeurExpectationDisposition[] }
 export interface CanonicalRentalReferenceData { costCodes: CanonicalReferenceCode[]; activityCodes: CanonicalReferenceCode[] }
+export interface CanonicalRentalReleaseReadinessLine { rentalEquipmentLineId: string; equipmentId?: string; missingFields: string[]; invalidValues: string[]; reasonCode?: string }
+export interface CanonicalRentalReleaseReadiness { rentalId: string; eligible: boolean; reasonCodes: string[]; incompleteEquipmentLines: CanonicalRentalReleaseReadinessLine[] }
 
 export type CanonicalRentalFailureCode = "UNAUTHENTICATED" | "FORBIDDEN" | "VALIDATION_REJECTED" | "NOT_FOUND" | "MISSING_RELATIONSHIP" | "EQUIPMENT_UNAVAILABLE" | "RENTAL_NUMBER_CONFLICT" | "RENTAL_CONFLICT" | "CONFLICT" | "LINE_SET_MISMATCH" | "INVALID_TRANSITION" | "RELEASE_NOT_READY" | "IDEMPOTENCY_MISMATCH" | "EXPECTATION_NOT_WAIVABLE" | "EXPECTATION_HAS_DEUR" | "ALREADY_WAIVED" | "PERSISTENCE_FAILURE" | "TRANSPORT_FAILURE" | "INVALID_RESPONSE";
 export type CanonicalReadResult<T> = { success: true; value: T } | { success: false; code: CanonicalRentalFailureCode; message: string };
@@ -34,6 +36,7 @@ export interface WaiveDeurExpectationInput { commandId:string; idempotencyKey:st
 export interface CanonicalRentalRemoteRepository {
   readWorkspace(rentalId: string): Promise<CanonicalReadResult<CanonicalRentalWorkspace>>;
   readReferenceData(): Promise<CanonicalReadResult<CanonicalRentalReferenceData>>;
+  getReleaseReadiness(rentalId: string): Promise<CanonicalReadResult<CanonicalRentalReleaseReadiness>>;
   createDraft(input: CreateCanonicalDraftInput): Promise<CanonicalCommandResult>;
   updateTerms(input: UpdateCanonicalTermsInput): Promise<CanonicalCommandResult>;
   submitApproval(input: CanonicalVersionedInput): Promise<CanonicalCommandResult>;
