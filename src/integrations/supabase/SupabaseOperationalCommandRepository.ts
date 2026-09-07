@@ -71,3 +71,7 @@ export function createSupabaseOperationalCommands(client: RpcClient): Operationa
     recoveryCommands: repository,
   };
 }
+
+export function createSupabaseRentalReturnCommands(client: RpcClient): RentalReturnCommandRepository {
+  return new SupabaseOperationalCommandRepository(client);
+}
