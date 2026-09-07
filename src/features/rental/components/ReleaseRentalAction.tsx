@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/toast/ToastContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useRental } from "@/features/rental/context/RentalContext";
 import { useApplicationDependenciesCompatibility } from "@/app/composition";
-import { canUseCanonicalRemoteRentalMutations, canUseLegacyRentalMutations } from "@/features/rental/services/rentalRuntimeCapability";
+import { canUseCanonicalRemoteRentalMutations, canUseCanonicalRemoteRentalReleaseMutation, canUseLegacyRentalMutations } from "@/features/rental/services/rentalRuntimeCapability";
 import { requestCanonicalRentalRefresh } from "@/features/rental/remote/canonicalRentalRefresh";
 
 interface Props {
@@ -18,7 +18,7 @@ export default function ReleaseRentalAction({ rentalId }: Props) {
   const dependencies = useApplicationDependenciesCompatibility();
   const { configuration } = dependencies;
   const legacyMutations = canUseLegacyRentalMutations(configuration);
-  const canonicalMutations = canUseCanonicalRemoteRentalMutations(configuration) && Boolean(dependencies.commandRepositories.canonicalRental);
+  const canonicalMutations = (canUseCanonicalRemoteRentalMutations(configuration) || canUseCanonicalRemoteRentalReleaseMutation(configuration)) && Boolean(dependencies.commandRepositories.canonicalRental);
   const mutationsAvailable = legacyMutations || canonicalMutations;
   const { user, hasPermission } = useAuth();
   const { releaseRental } = useRental();
