@@ -7,9 +7,10 @@ const local = vi.hoisted(() => ({
   equipment: [{ id: "local-equipment", assetNo: "ME-000001", equipmentName: "DT01", status: "Assigned" }],
   operators: [{ id: "local-operator", name: "Juan Pedro", status: "Active" }],
   projects: [{ id: "local-project", projectCode: "LOCAL", projectName: "Local Project", status: "Active" }],
+  hasPermission: vi.fn(() => true),
   deleteEquipment: vi.fn(), deleteOperator: vi.fn(), addEquipment: vi.fn(), updateEquipment: vi.fn(), addOperator: vi.fn(), updateOperator: vi.fn(), addProject: vi.fn(), updateProject: vi.fn(),
 }));
-vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => ({ hasPermission: () => true }) }));
+vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => ({ hasPermission: local.hasPermission }) }));
 vi.mock("@/features/equipment/context/EquipmentContext", () => ({ useEquipment: () => ({ equipment: local.equipment, getEquipment: (id: string) => local.equipment.find((item) => item.id === id), deleteEquipment: local.deleteEquipment, addEquipment: local.addEquipment, updateEquipment: local.updateEquipment }) }));
 vi.mock("@/features/operators/context/OperatorContext", () => ({ useOperator: () => ({ operators: local.operators, deleteOperator: local.deleteOperator, addOperator: local.addOperator, updateOperator: local.updateOperator }) }));
 vi.mock("@/features/project/context/ProjectContext", () => ({ useProject: () => ({ projects: local.projects, addProject: local.addProject, updateProject: local.updateProject }) }));
@@ -38,7 +39,14 @@ const page = (items: unknown[]) => repositorySuccess({ items, nextCursor: undefi
 function remoteDependencies(input: { equipment?: unknown[]; operators?: unknown[]; projects?: unknown[]; failure?: "equipment" | "operators" | "projects" } = {}): ApplicationDependencies {
   const dependencies = createLocalApplicationDependencies();
   const failure = repositoryFailure("REMOTE_FAILED", "failed", { context: {}, recoverability: "RETRYABLE", recommendedAction: "Retry" });
-  const repository = (name: "equipment" | "operators" | "projects", items: unknown[]) => ({ ...dependencies.readRepositories[name], list: vi.fn(async () => input.failure === name ? failure : page(items)) });
+  const repository = (name: "equipment" | "operators" | "projects", items: unknown[]) => ({
+    ...dependencies.readRepositories[name],
+    list: vi.fn(async () => input.failure === name ? failure : page(items)),
+    getById: vi.fn(async (id: string) => {
+      const item = items.find((candidate) => candidate && typeof candidate === "object" && "id" in candidate && candidate.id === id);
+      return repositorySuccess(item ?? null);
+    }),
+  });
   return {
     ...dependencies,
     readRepositories: { ...dependencies.readRepositories, equipment: repository("equipment", input.equipment ?? []), operators: repository("operators", input.operators ?? []), projects: repository("projects", input.projects ?? []) } as ApplicationDependencies["readRepositories"],
@@ -67,8 +75,10 @@ describe("remote canonical Equipment boundary", () => {
   });
   it("does not expose local details and fails closed on all mutation routes", async () => {
     const details = createElement(Routes, null, createElement(Route, { path: "/equipment/:id", element: createElement(EquipmentDetails) }));
-    expect((await render(details, remoteDependencies(), "/equipment/local-equipment")).textContent).toBe("Equipment not found.");
-    for (const [component, route] of [[NewEquipment, "/equipment/new"], [EditEquipment, "/equipment/edit/local-equipment"], [EquipmentTrash, "/equipment/trash"]] as const) expect((await render(createElement(component), remoteDependencies(), route)).textContent).toContain("Changes unavailable");
+    expect((await render(details, remoteDependencies(), "/equipment/local-equipment")).textContent).toContain("Equipment not found.");
+    expect((await render(createElement(NewEquipment), remoteDependencies(), "/equipment/new")).textContent).toContain("Changes unavailable");
+    expect((await render(createElement(EditEquipment), remoteDependencies(), "/equipment/edit/local-equipment")).textContent).toContain("No changes can be saved");
+    expect((await render(createElement(EquipmentTrash), remoteDependencies(), "/equipment/trash")).textContent).toContain("Changes unavailable");
     expect(local.addEquipment).not.toHaveBeenCalled(); expect(local.updateEquipment).not.toHaveBeenCalled(); expect(local.deleteEquipment).not.toHaveBeenCalled();
   });
 });
@@ -80,7 +90,7 @@ describe("remote canonical Operator boundary", () => {
   });
   it("fails closed before local create, edit, link, PIN, or delete behavior", async () => {
     expect((await render(createElement(NewOperator), remoteDependencies(), "/operators/new")).textContent).toContain("Changes unavailable");
-    expect((await render(createElement(EditOperator), remoteDependencies(), "/operators/edit/local-operator")).textContent).toContain("Changes unavailable");
+    expect((await render(createElement(EditOperator), remoteDependencies(), "/operators/edit/local-operator")).textContent).toContain("certification assignments only");
     expect(local.addOperator).not.toHaveBeenCalled(); expect(local.updateOperator).not.toHaveBeenCalled(); expect(local.deleteOperator).not.toHaveBeenCalled();
   });
   it("re-reads the canonical list after a successful create refresh", async () => {
@@ -101,7 +111,7 @@ describe("remote canonical Project boundary", () => {
   });
   it("fails closed before local create or edit behavior", async () => {
     expect((await render(createElement(NewProject), remoteDependencies(), "/projects/new")).textContent).toContain("Changes unavailable");
-    expect((await render(createElement(EditProject), remoteDependencies(), "/projects/local-project/edit")).textContent).toContain("Changes unavailable");
+    expect((await render(createElement(EditProject), remoteDependencies(), "/projects/local-project/edit")).textContent).toContain("Project not found");
     expect(local.addProject).not.toHaveBeenCalled(); expect(local.updateProject).not.toHaveBeenCalled();
   });
 });

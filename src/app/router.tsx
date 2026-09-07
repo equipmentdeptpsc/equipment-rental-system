@@ -117,6 +117,7 @@ export const router = createBrowserRouter([
       { path: "projects", element: permitted("project.read", <Projects />) },
       { path: "projects/new", element: permitted("project.manage", <NewProject />) },
       { path: "projects/:id/edit", element: permitted("project.manage", <EditProject />) },
+      { path: "projects/:id/customer", element: permitted("project.update", <EditProject />) },
       { path: "assignments", element: permitted("assignment.read", <Assignments />) },
       { path: "assignments/new", element: permitted("assignment.create", <NewAssignment />) },
       { path: "assignments/:id/edit", element: permitted("assignment.manage", <EditAssignment />) },
