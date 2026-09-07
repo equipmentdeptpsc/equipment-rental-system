@@ -1,4 +1,6 @@
-import { PersistenceMode, type ApplicationRuntimeConfiguration } from "@/app/composition";
+import { PersistenceMode, type ApplicationDependencies } from "@/app/composition";
+
+type Configuration = ApplicationDependencies["configuration"];
 
 export interface ProjectRuntimeCapability {
   canonicalReads: boolean;
@@ -7,9 +9,20 @@ export interface ProjectRuntimeCapability {
   canonicalMutations: boolean;
 }
 
-export function getProjectRuntimeCapability(configuration: ApplicationRuntimeConfiguration, canonicalRepositoryAvailable = false): ProjectRuntimeCapability {
-  const remote = configuration.persistenceMode === PersistenceMode.Remote;
-  return { canonicalReads: remote, legacyReads: !remote, legacyMutations: !remote, canonicalMutations: remote && configuration.remoteOperationalWritesEnabled === true && canonicalRepositoryAvailable };
+export const REMOTE_PROJECT_MUTATION_UNAVAILABLE_MESSAGE = "Project changes are unavailable in remote mode until the canonical command boundary is certified.";
+
+export function getProjectRuntimeCapability(configuration: Configuration, canonicalRepositoryAvailable = false): ProjectRuntimeCapability {
+  const local = configuration.persistenceMode === PersistenceMode.Local;
+  return {
+    canonicalReads: !local,
+    legacyReads: local,
+    legacyMutations: local,
+    canonicalMutations: !local && configuration.remoteOperationalWritesEnabled && canonicalRepositoryAvailable,
+  };
 }
 
-export const REMOTE_PROJECT_MUTATION_UNAVAILABLE_MESSAGE = "Project changes are unavailable in remote mode until a canonical Project command is certified.";
+export function canLinkProjectCustomer(configuration: Configuration, repositoryAvailable = false) {
+  return configuration.persistenceMode === PersistenceMode.Remote
+    && configuration.remoteProjectCustomerLinkEnabled === true
+    && repositoryAvailable;
+}

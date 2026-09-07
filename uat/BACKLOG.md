@@ -2,6 +2,7 @@
 
 | Item | State | Evidence / next action |
 |---|---|---|
+| Milestone 11.6D2 Project → Customer canonical link | PRE-PUBLICATION READY | `ASN-000015` is active with no Rental; exact `UAT-PROJ-002.customer_id` is NULL while its Location contains a non-canonical Customer label. Local-only `20260907000200` adds the narrow `project.update`-guarded link command. Obtain publication authorization, then apply and enable only its dedicated UAT capability before linking the named fixture Project. |
 | Catalog 2.0 Users-list visibility | CLOSED | 00700 applied; four users and both Operations Managers visible with role embeds. |
 | Duplicate Operations Manager | CLOSED | `645384d0-c872-4245-84b5-9ec16305431c` deactivated; original and both Auth identities preserved. |
 | Rental Activate | CLOSED | RNT-2026-000001 activated; DEUR/commercial/Assignment/equipment invariants preserved. |
