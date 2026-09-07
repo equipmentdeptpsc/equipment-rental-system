@@ -48,19 +48,19 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function dependencies(repository: CanonicalRentalRemoteRepository): ApplicationDependencies {
+function dependencies(repository: CanonicalRentalRemoteRepository, remoteOperationalWritesEnabled = true, remoteRentalApprovalEnabled = false): ApplicationDependencies {
   return {
-    configuration: { persistenceMode: PersistenceMode.Remote, equipmentStatusSource: "supabase", remoteOperationalWritesEnabled: true },
+    configuration: { persistenceMode: PersistenceMode.Remote, equipmentStatusSource: "supabase", remoteOperationalWritesEnabled, remoteRentalApprovalEnabled },
     commandRepositories: { canonicalRental: repository },
   } as unknown as ApplicationDependencies;
 }
 
-async function render(repository: CanonicalRentalRemoteRepository) {
+async function render(repository: CanonicalRentalRemoteRepository, remoteOperationalWritesEnabled = true, remoteRentalApprovalEnabled = false) {
   const container = document.createElement("div");
   const root = createRoot(container); roots.push(root);
   await act(async () => root.render(createElement(
     ApplicationDependencyContext.Provider,
-    { value: dependencies(repository) },
+    { value: dependencies(repository, remoteOperationalWritesEnabled, remoteRentalApprovalEnabled) },
     createElement(MemoryRouter, null, createElement(RentalQuickActions, { rental })),
   )));
   return container;
@@ -128,5 +128,23 @@ describe("canonical Rental approval quick action", () => {
     expect(decideApproval).not.toHaveBeenCalled();
     expect(container.textContent).not.toContain("Working…");
     expect(mocks.showToast).toHaveBeenCalledWith("A rejection reason is required.", "error");
+  });
+
+  it("exposes only approval decisions when the narrow capability is enabled without broad operational writes", async () => {
+    const decideApproval = vi.fn(async () => ({ success: true as const, disposition: "ACCEPTED" as const, value: { rentalId: rental.id, status: "Draft" as const, approvalStatus: "Approved" as const, version: 5 } }));
+    const container = await render(repository(decideApproval), false, true);
+
+    expect(container.textContent).toContain("Approve Rental");
+    expect(container.textContent).toContain("Reject Rental");
+    expect(container.textContent).not.toContain("Reserve Rental");
+    expect(container.textContent).not.toContain("Release Equipment");
+
+    await act(async () => { button(container, "Approve Rental").click(); await Promise.resolve(); });
+    expect(decideApproval).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides approval actions when both the narrow and broad remote capabilities are disabled", async () => {
+    const container = await render(repository(vi.fn()), false, false);
+    expect(container.textContent).toBe("");
   });
 });

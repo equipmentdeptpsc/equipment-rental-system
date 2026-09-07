@@ -23,7 +23,12 @@ export function canUseCanonicalRemoteRentalCommercialTermsMutation(configuration
     && configuration.remoteRentalCommercialTermsEnabled === true;
 }
 
+export function canUseCanonicalRemoteRentalApprovalMutations(configuration: RentalRuntimeConfiguration): boolean {
+  return configuration.persistenceMode === PersistenceMode.Remote
+    && (configuration.remoteOperationalWritesEnabled === true || configuration.remoteRentalApprovalEnabled === true);
+}
+
 export function canUseAnyRentalMutations(configuration: RentalRuntimeConfiguration, canonicalRepositoryAvailable: boolean): boolean {
   return canUseLegacyRentalMutations(configuration)
-    || (canUseCanonicalRemoteRentalMutations(configuration) && canonicalRepositoryAvailable);
+    || ((canUseCanonicalRemoteRentalMutations(configuration) || canUseCanonicalRemoteRentalApprovalMutations(configuration)) && canonicalRepositoryAvailable);
 }
