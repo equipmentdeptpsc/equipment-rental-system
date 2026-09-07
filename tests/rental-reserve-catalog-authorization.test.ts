@@ -55,7 +55,7 @@ describe("Catalog 2.0 Rental Reserve authorization", () => {
   it("aligns the UI and forward-only RPC mutation to rental.update", () => {
     expect(applicationPermissions).toContain('"rental.update"');
     expect(ui).toContain('reserve: hasPermission("rental.update")');
-    expect(ui).toContain('approval === "Approved" ? { actions: permissions.reserve');
+    expect(ui).toContain('approval === "Approved" ? { actions: (canonicalOperationalMutations || canonicalReserveMutations) && permissions.reserve');
     expect(migration).toContain("CREATE OR REPLACE FUNCTION erp.command_reserve_rental(command jsonb)");
     expect(migration).toContain("current_user_has_permission('rental.update')");
     expect(historical).toContain("current_user_has_permission('rental.manage')");
