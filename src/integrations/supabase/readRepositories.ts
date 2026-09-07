@@ -104,7 +104,7 @@ export function mapProject(row: Record<string, unknown>): RepositoryResult<Proje
   if (!base.success) return base;
   const value = base.value;
   if (typeof value.id !== "string" || typeof value.projectCode !== "string" || typeof value.name !== "string" || typeof value.active !== "boolean") return repositoryFailure("REMOTE_ROW_MALFORMED", "Remote Project requires id, code, name, and active state.", { context: { repository: "Project" }, recoverability: "MANUAL_RECONCILIATION", recommendedAction: "Repair the canonical Project row." });
-  return repositorySuccess({ id: value.id, projectCode: value.projectCode, projectName: value.name, customerId: typeof value.customerId === "string" ? value.customerId : undefined, location: typeof value.location === "string" ? value.location : "", projectManager: "", status: value.active ? "Active" : "Completed", deleted: value.deletedAt !== null && value.deletedAt !== undefined } as ProjectRecord);
+  return repositorySuccess({ id: value.id, projectCode: value.projectCode, projectName: value.name, customerId: typeof value.customerId === "string" ? value.customerId : undefined, location: typeof value.location === "string" ? value.location : "", projectManager: "", status: value.active ? "Active" : "Completed", deleted: value.deletedAt !== null && value.deletedAt !== undefined, rowVersion: typeof value.rowVersion === "number" ? value.rowVersion : undefined } as ProjectRecord);
 }
 function mapAssignment(row: Record<string, unknown>): RepositoryResult<AssignmentRecord> {
   const base = mapCanonicalRow<Record<string, unknown>>(row);

@@ -5,10 +5,14 @@ import { useCustomer } from "@/features/customer/context/CustomerContext";
 import { useApplicationDependenciesCompatibility } from "@/app/composition";
 import { getProjectRuntimeCapability, REMOTE_PROJECT_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/project/services/projectRuntimeCapability";
 import RemoteMutationUnavailable from "@/components/ui/RemoteMutationUnavailable";
+import RemoteProjectCustomerLink from "@/features/project/components/RemoteProjectCustomerLink";
 
 export default function EditProject() {
   const { configuration } = useApplicationDependenciesCompatibility();
-  return getProjectRuntimeCapability(configuration).legacyMutations ? <LocalEditProject /> : <RemoteMutationUnavailable title="Edit Project" message={REMOTE_PROJECT_MUTATION_UNAVAILABLE_MESSAGE} />;
+  const capability = getProjectRuntimeCapability(configuration);
+  if (capability.legacyMutations) return <LocalEditProject />;
+  if (capability.canonicalReads) return <RemoteProjectCustomerLink />;
+  return <RemoteMutationUnavailable title="Edit Project" message={REMOTE_PROJECT_MUTATION_UNAVAILABLE_MESSAGE} />;
 }
 
 function LocalEditProject() {

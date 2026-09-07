@@ -28,4 +28,6 @@ export interface ProjectRecord {
   deleted?: boolean;
 
   deletedAt?: number;
+
+  rowVersion?: number;
 }
