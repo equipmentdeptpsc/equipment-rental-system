@@ -19,6 +19,7 @@ function dependencies(list: ReturnType<typeof vi.fn>, references: CanonicalRenta
   const canonicalRental: CanonicalRentalRemoteRepository = {
     readWorkspace: vi.fn(async () => unusedCanonicalFailure),
     readReferenceData: vi.fn(async () => ({ success: true as const, value: references })),
+    getReleaseReadiness: vi.fn(async () => unusedCanonicalFailure),
     createDraft: vi.fn(async () => unusedCanonicalFailure),
     updateTerms: vi.fn(async () => unusedCanonicalFailure),
     submitApproval: vi.fn(async () => unusedCanonicalFailure),

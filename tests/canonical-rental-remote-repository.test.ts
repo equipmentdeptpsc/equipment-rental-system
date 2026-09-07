@@ -36,4 +36,17 @@ describe("canonical remote Rental repository", () => {
     expect(result).toEqual({ success: false, code: "TRANSPORT_FAILURE", message: "Confirmation was not received from the remote service. Refresh before retrying." });
     expect(JSON.stringify(result)).not.toContain("secret_table");
   });
+
+  it("reads Release readiness through the protected canonical RPC without reconstructing it locally", async () => {
+    const remote = client([{ data: { eligible: false, rentalId: "r-1", reasonCodes: ["RELEASE_NOT_READY", "SNAPSHOT_STALE"], incompleteEquipmentLines: [{ rentalEquipmentLineId: "line-1", missingFields: ["snapshotFreshness"], invalidValues: [] }] }, error: null }]);
+    const result = await new SupabaseCanonicalRentalRepository(remote.value as never).getReleaseReadiness("r-1");
+    expect(result).toEqual({ success: true, value: { eligible: false, rentalId: "r-1", reasonCodes: ["RELEASE_NOT_READY", "SNAPSHOT_STALE"], incompleteEquipmentLines: [{ rentalEquipmentLineId: "line-1", missingFields: ["snapshotFreshness"], invalidValues: [] }] } });
+    expect(remote.rpc).toHaveBeenCalledTimes(1);
+    expect(remote.rpc).toHaveBeenCalledWith("rental_release_readiness", { target_rental_id: "r-1" });
+  });
+
+  it("fails closed when canonical readiness rejects the actor or Rental", async () => {
+    const remote = client([{ data: { eligible: false, reasonCodes: ["FORBIDDEN"], incompleteEquipmentLines: [] }, error: null }]);
+    expect(await new SupabaseCanonicalRentalRepository(remote.value as never).getReleaseReadiness("wrong-rental")).toMatchObject({ success: false, code: "FORBIDDEN" });
+  });
 });
