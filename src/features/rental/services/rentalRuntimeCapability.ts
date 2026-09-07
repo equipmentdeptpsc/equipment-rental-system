@@ -38,7 +38,12 @@ export function canUseCanonicalRemoteRentalReleaseMutation(configuration: Rental
     && (configuration.remoteOperationalWritesEnabled === true || configuration.remoteRentalReleaseEnabled === true);
 }
 
+export function canUseCanonicalRemoteRentalActivateMutation(configuration: RentalRuntimeConfiguration): boolean {
+  return configuration.persistenceMode === PersistenceMode.Remote
+    && (configuration.remoteOperationalWritesEnabled === true || configuration.remoteRentalActivateEnabled === true);
+}
+
 export function canUseAnyRentalMutations(configuration: RentalRuntimeConfiguration, canonicalRepositoryAvailable: boolean): boolean {
   return canUseLegacyRentalMutations(configuration)
-    || ((canUseCanonicalRemoteRentalMutations(configuration) || canUseCanonicalRemoteRentalApprovalMutations(configuration) || canUseCanonicalRemoteRentalReserveMutation(configuration) || canUseCanonicalRemoteRentalReleaseMutation(configuration)) && canonicalRepositoryAvailable);
+    || ((canUseCanonicalRemoteRentalMutations(configuration) || canUseCanonicalRemoteRentalApprovalMutations(configuration) || canUseCanonicalRemoteRentalReserveMutation(configuration) || canUseCanonicalRemoteRentalReleaseMutation(configuration) || canUseCanonicalRemoteRentalActivateMutation(configuration)) && canonicalRepositoryAvailable);
 }

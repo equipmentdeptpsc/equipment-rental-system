@@ -30,7 +30,7 @@ function repository(activate = vi.fn(async (): Promise<CanonicalCommandResult> =
 async function render(rental: RentalRecord, repo: CanonicalRentalRemoteRepository) {
   const container = document.createElement("div");
   const root = createRoot(container); roots.push(root);
-  const dependencies = { configuration: { persistenceMode: PersistenceMode.Remote, equipmentStatusSource: "supabase", remoteOperationalWritesEnabled: true }, commandRepositories: { canonicalRental: repo } } as unknown as ApplicationDependencies;
+  const dependencies = { configuration: { persistenceMode: PersistenceMode.Remote, equipmentStatusSource: "supabase", remoteOperationalWritesEnabled: false, remoteRentalActivateEnabled: true }, commandRepositories: { canonicalRental: repo } } as unknown as ApplicationDependencies;
   await act(async () => root.render(createElement(
     ApplicationDependencyContext.Provider,
     { value: dependencies },
@@ -91,6 +91,14 @@ describe("canonical Rental Activate remediation", () => {
     auth.permissions.add("rental.activate");
     expect((await render({ ...released, status: "Reserved" }, repository())).textContent).not.toContain("Activate Rental");
     expect((await render({ ...released, status: "Active" }, repository())).textContent).not.toContain("Activate Rental");
+  });
+
+  it("keeps Activate hidden when the dedicated capability is disabled", async () => {
+    const container = document.createElement("div");
+    const root = createRoot(container); roots.push(root);
+    const dependencies = { configuration: { persistenceMode: PersistenceMode.Remote, equipmentStatusSource: "supabase", remoteOperationalWritesEnabled: false, remoteRentalActivateEnabled: false }, commandRepositories: { canonicalRental: repository() } } as unknown as ApplicationDependencies;
+    await act(async () => root.render(createElement(ApplicationDependencyContext.Provider, { value: dependencies }, createElement(MemoryRouter, null, createElement(RentalQuickActions, { rental: released })) )));
+    expect(container.textContent).not.toContain("Activate Rental");
   });
 
   it.each([
