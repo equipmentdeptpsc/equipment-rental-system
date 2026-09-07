@@ -29,6 +29,8 @@ export interface AssignmentRecord {
   deleted?: boolean;
 
   deletedAt?: number;
+
+  rowVersion?: number;
 }
 
 export interface AssignmentFormData {

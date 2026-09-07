@@ -175,5 +175,7 @@ describe("canonical Assignment remote UI boundary", () => {
     expect(getAssignmentRuntimeCapability(local)).toMatchObject({ legacyReads: true, legacyMutations: true, canonicalReads: false });
     expect(getAssignmentRuntimeCapability({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: true }, true)).toMatchObject({ legacyReads: false, legacyMutations: false, canonicalReads: true, canonicalMutations: true });
     expect(getAssignmentRuntimeCapability({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteAssignmentCreateEnabled: true }, true)).toMatchObject({ canonicalMutations: false, canonicalCreation: true });
-  });
+    expect(getAssignmentRuntimeCapability({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteAssignmentCreateEnabled: false, remoteAssignmentCancelEnabled: false }, true)).toMatchObject({ canonicalCancellation: false, canonicalMutations: false });
+    expect(getAssignmentRuntimeCapability({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteAssignmentCreateEnabled: false, remoteAssignmentCancelEnabled: true }, true)).toMatchObject({ canonicalCancellation: true, canonicalMutations: false, canonicalCreation: false });
+});
 });

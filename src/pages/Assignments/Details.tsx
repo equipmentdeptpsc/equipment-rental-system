@@ -3,6 +3,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+import { useState } from "react";
 
 import Button from "@/components/ui/Button";
 
@@ -24,6 +25,7 @@ import { useApplicationDependenciesCompatibility } from "@/app/composition";
 import { canUseCanonicalRemoteRentalCreation, canUseLegacyRentalMutations, REMOTE_RENTAL_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/rental/services/rentalRuntimeCapability";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useCanonicalAssignmentData } from "@/features/assignment/hooks/useCanonicalAssignmentData";
+import { requestCanonicalAssignmentRefresh } from "@/features/assignment/remote/canonicalAssignmentRefresh";
 import { canStartRentalFromCanonicalAssignment, getAssignmentRuntimeCapability, REMOTE_ASSIGNMENT_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/assignment/services/assignmentRuntimeCapability";
 
 export default function AssignmentDetails() {
@@ -36,16 +38,41 @@ function RemoteAssignmentDetails() {
   const { configuration, commandRepositories } = useApplicationDependenciesCompatibility();
   const { hasPermission } = useAuth();
   const state = useCanonicalAssignmentData();
+  const [cancelMessage, setCancelMessage] = useState<string>();
+  const [cancelling, setCancelling] = useState(false);
   if (state.status === "loading") return <div className="p-8 text-slate-500">Loading canonical Assignment…</div>;
   if (state.status === "error") return <div className="p-8" role="alert">{state.message}<button className="ml-3 underline" onClick={state.retry}>Retry</button></div>;
   const assignment = state.data.assignments.find((record) => record.id === id && !record.deleted);
   if (!assignment) return <div className="p-8">Assignment not found.</div>;
+  const currentAssignment = assignment;
   const equipment = state.data.equipment.find((record) => record.id === assignment.equipmentId);
   const operator = state.data.operators.find((record) => record.id === assignment.operatorId);
   const project = state.data.projects.find((record) => record.id === assignment.projectId);
   const rentalCreationAvailable = canUseCanonicalRemoteRentalCreation(configuration) && Boolean(commandRepositories.canonicalRental);
   const showStartRental = canStartRentalFromCanonicalAssignment({ assignment, rentalCreationAvailable, hasRentalManagePermission: hasPermission("rental.create") });
-  return <div className="space-y-6 p-8"><div><h1 className="text-3xl font-bold">Assignment {getAssignmentNumber(assignment.id, state.data.assignments)}</h1><p className="text-slate-500">Canonical remote Assignment details.</p></div><div className="rounded-xl border bg-white p-6 shadow-sm"><div className="grid gap-6 md:grid-cols-2"><Info label="Equipment" value={equipment ? `${equipment.assetNo} - ${equipment.equipmentName}` : "Unknown canonical Equipment"} /><Info label="Operator" value={operator?.name || "Unknown canonical Operator"} /><Info label="Project" value={project?.name || "Unknown canonical Project"} /><Info label="Activity Code ID" value={assignment.activityCodeId || "-"} /><Info label="Status" value={assignment.status} /><Info label="Assigned Date" value={assignment.assignedDate} /><Info label="End Date / Expected Return" value={displayAssignmentExpectedReturn(assignment.expectedReturn)} /></div><div className="mt-6"><div className="text-sm font-medium text-slate-500">Remarks</div><div className="mt-1 rounded-lg bg-slate-50 p-4">{assignment.remarks || "-"}</div></div></div><p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">{REMOTE_ASSIGNMENT_MUTATION_UNAVAILABLE_MESSAGE}</p><div className="flex flex-wrap gap-3">{showStartRental && <Link to={`/rentals/new?assignment=${encodeURIComponent(assignment.id)}`}><Button>Start Rental</Button></Link>}</div></div>;
+  const capability = getAssignmentRuntimeCapability(configuration, Boolean(commandRepositories.canonicalAssignment));
+  const canCancel = currentAssignment.status === "Active" && capability.canonicalCancellation && hasPermission("assignment.close");
+  async function handleCancel() {
+    if (!canCancel || !commandRepositories.canonicalAssignment || typeof currentAssignment.rowVersion !== "number") return;
+    if (!window.confirm("Cancel this assignment booking?")) return;
+    setCancelling(true);
+    setCancelMessage(undefined);
+    const result = await commandRepositories.canonicalAssignment.cancelAssignment({
+      commandId: crypto.randomUUID(),
+      idempotencyKey: crypto.randomUUID(),
+      assignmentId: currentAssignment.id,
+      expectedVersion: currentAssignment.rowVersion,
+      clientCreatedAt: new Date().toISOString(),
+      deviceId: "erms-web",
+    });
+    setCancelling(false);
+    if (!result.success) {
+      setCancelMessage(result.message);
+      return;
+    }
+    requestCanonicalAssignmentRefresh();
+  }
+  return <div className="space-y-6 p-8"><div><h1 className="text-3xl font-bold">Assignment {getAssignmentNumber(assignment.id, state.data.assignments)}</h1><p className="text-slate-500">Canonical remote Assignment details.</p></div><div className="rounded-xl border bg-white p-6 shadow-sm"><div className="grid gap-6 md:grid-cols-2"><Info label="Equipment" value={equipment ? `${equipment.assetNo} - ${equipment.equipmentName}` : "Unknown canonical Equipment"} /><Info label="Operator" value={operator?.name || "Unknown canonical Operator"} /><Info label="Project" value={project?.name || "Unknown canonical Project"} /><Info label="Activity Code ID" value={assignment.activityCodeId || "-"} /><Info label="Status" value={assignment.status} /><Info label="Assigned Date" value={assignment.assignedDate} /><Info label="End Date / Expected Return" value={displayAssignmentExpectedReturn(assignment.expectedReturn)} /></div><div className="mt-6"><div className="text-sm font-medium text-slate-500">Remarks</div><div className="mt-1 rounded-lg bg-slate-50 p-4">{assignment.remarks || "-"}</div></div></div>{!canCancel && <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">{REMOTE_ASSIGNMENT_MUTATION_UNAVAILABLE_MESSAGE}</p>}{cancelMessage && <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-950" role="alert">{cancelMessage}</p>}<div className="flex flex-wrap gap-3">{showStartRental && <Link to={`/rentals/new?assignment=${encodeURIComponent(assignment.id)}`}><Button>Start Rental</Button></Link>}{canCancel && <Button variant="secondary" disabled={cancelling} onClick={handleCancel}>{cancelling ? "Cancelling…" : "Cancel Assignment"}</Button>}</div></div>;
 }
 
 function LocalAssignmentDetails() {
