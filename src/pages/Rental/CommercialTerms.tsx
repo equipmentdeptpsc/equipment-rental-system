@@ -14,8 +14,8 @@ import { getCommercialConfigurationProgress, getNextUnconfiguredLine, isCommerci
 import { resolveCommercialSummary } from "@/features/rental/commercial/resolveCommercialSummary";
 import { useApplicationDependenciesCompatibility } from "@/app/composition";
 import { canUseLegacyRentalMutations, REMOTE_RENTAL_MUTATION_UNAVAILABLE_MESSAGE } from "@/features/rental/services/rentalRuntimeCapability";
-import { canUseCanonicalRemoteRentalMutations } from "@/features/rental/services/rentalRuntimeCapability";
 import RemoteCommercialTermsPage from "@/features/rental/remote/RemoteCommercialTermsPage";
+import { PersistenceMode } from "@/app/composition";
 
 const optionalNumber = (value: string) => value.trim() === "" ? undefined : Number(value);
 export const commercialRateLabel=(method:RentalBillingMethod)=>({
@@ -94,7 +94,6 @@ export default function RentalCommercialTermsPage() {
   const { configuration } = useApplicationDependenciesCompatibility();
   const mutationsAvailable = canUseLegacyRentalMutations(configuration);
   const { rentalId = "" } = useParams(); const { showToast } = useToast();
-  const canonicalMutationsAvailable = canUseCanonicalRemoteRentalMutations(configuration);
   const { getRental, rentalEquipmentLines, getContractForRentalEquipmentLine, saveCommercialTermsForRentalEquipmentLine, saveCommercialTermsForSelectedLines, addRentalEquipmentLine, removeRentalEquipmentLine } = useRental();
   const { equipment } = useEquipment(); const { operators } = useOperator(); const { assignments } = useAssignment();
   const rental = getRental(rentalId); const lines = rentalEquipmentLines.filter((line) => line.rentalId === rentalId);
@@ -107,7 +106,7 @@ export default function RentalCommercialTermsPage() {
   const resultRef = useRef<HTMLElement>(null);
   const [bulkLineIds, setBulkLineIds] = useState<string[]>([]);
   useEffect(() => { if (savedLineId) resultRef.current?.focus({ preventScroll: false }); }, [savedLineId]);
-  if (canonicalMutationsAvailable) return <RemoteCommercialTermsPage rentalId={rentalId}/>;
+  if (configuration.persistenceMode === PersistenceMode.Remote) return <RemoteCommercialTermsPage rentalId={rentalId}/>;
   if (!rental) return <div className="p-8">Rental not found.</div>;
   if (!mutationsAvailable) return <main className="p-8"><Link className="text-blue-700" to={`/rentals/${rental.id}/workspace`}>← Rental Workspace</Link><h1 className="mt-4 text-2xl font-bold">Commercial terms unavailable</h1><p className="mt-3 rounded border border-amber-200 bg-amber-50 p-4 text-amber-900">{REMOTE_RENTAL_MUTATION_UNAVAILABLE_MESSAGE}</p></main>;
   const editable = canEditRentalCommercialTerms(rental);

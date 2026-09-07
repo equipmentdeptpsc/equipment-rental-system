@@ -101,7 +101,7 @@ export default function RentalQuickActions({ rental, hideClose = false }: { rent
     else result = transitionRental(rental.id, "Closed");
     showToast(result.success ? `${model.actions.find((item) => item.id === id)?.label ?? "Rental action"} completed.` : result.message ?? "Rental action failed.", result.success ? "success" : "error"); submissionPending.current = false; setPending(undefined);
   }
-  const canEditTerms = hasPermission("rental.commercialTerms.manage") && (legacyMutations ? ["Draft", "Assigned", "Reserved"].includes(rental.status) : rental.status === "Draft");
+  const canEditTerms = hasPermission("rental.commercialTerms.update") && (legacyMutations ? ["Draft", "Assigned", "Reserved"].includes(rental.status) : rental.status === "Draft");
   const actions = visibleRentalQuickActions(model, hideClose).filter((action) => legacyMutations || ["submit", "approve", "reject", "reserve", "release", "activate", "return"].includes(action.id));
   const releaseReady = canonicalMutations ? true : rental.status === "Reserved" ? getReleaseReadiness(rental.id).eligible : true;
   if (!mutationsAvailable) return null;
