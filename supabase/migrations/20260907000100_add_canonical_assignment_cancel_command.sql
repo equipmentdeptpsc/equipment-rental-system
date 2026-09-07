@@ -67,10 +67,18 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'code', 'INVALID_TRANSITION', 'message', 'Only an Active Assignment can be cancelled.', 'retryable', false, 'refreshRequired', true);
   END IF;
   IF EXISTS (
-    SELECT 1 FROM erp.rental_equipment_lines AS line
-    JOIN erp.rentals AS rental ON rental.id = line.rental_id AND rental.company_id = tenant
-    WHERE line.assignment_id = target.id AND line.company_id = tenant
+    SELECT 1 FROM erp.rentals AS rental
+    WHERE rental.company_id = tenant
       AND rental.status NOT IN ('Returned', 'Closed', 'Cancelled')
+      AND (
+        rental.assignment_id = target.id
+        OR EXISTS (
+          SELECT 1 FROM erp.rental_equipment_lines AS line
+          WHERE line.rental_id = rental.id
+            AND line.company_id = tenant
+            AND line.assignment_id = target.id
+        )
+      )
   ) THEN
     RETURN jsonb_build_object('success', false, 'code', 'RENTAL_CONFLICT', 'message', 'Assignments linked to a non-final Rental cannot be cancelled.', 'retryable', false, 'refreshRequired', true);
   END IF;
