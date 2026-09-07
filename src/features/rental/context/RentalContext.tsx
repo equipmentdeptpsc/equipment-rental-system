@@ -761,14 +761,14 @@ export function RentalProvider({
 
   function addContract(contract: RentalContractRecord) {
     if (!legacyMutationsEnabled) return;
-    if (!hasPermission("rental.commercialTerms.manage")) return;
+    if (!hasPermission("rental.commercialTerms.update")) return;
     rentalContractRepository.create(contract);
     refreshContracts();
   }
 
   function updateContract(contract: RentalContractRecord) {
     if (!legacyMutationsEnabled) return;
-    if (!hasPermission("rental.commercialTerms.manage")) return;
+    if (!hasPermission("rental.commercialTerms.update")) return;
     const rentalId = contract.rentalId ?? contract.id;
     const rental = rentalRepository.getById(rentalId);
     const lineId = contract.rentalEquipmentLineId ?? rentalEquipmentLineRepository.getByRentalId(rentalId).at(0)?.id;
@@ -781,7 +781,7 @@ export function RentalProvider({
 
   function deleteContract(id: string) {
     if (!legacyMutationsEnabled) return;
-    if (!hasPermission("rental.commercialTerms.manage")) return;
+    if (!hasPermission("rental.commercialTerms.update")) return;
     rentalContractRepository.delete(id);
     refreshContracts();
   }
@@ -807,7 +807,7 @@ export function RentalProvider({
 
   function saveCommercialTermsForRentalEquipmentLine(rentalId: string, lineId: string, input: RentalCommercialTermsInput): RentalTransitionResult {
     if (!legacyMutationsEnabled) return unavailable();
-    if (!hasPermission("rental.commercialTerms.manage")) return { success: false, message: "You do not have permission to edit Commercial Terms." };
+    if (!hasPermission("rental.commercialTerms.update")) return { success: false, message: "You do not have permission to edit Commercial Terms." };
     const rental = rentalRepository.getById(rentalId);
     if (!rental) return { success: false, message: "Rental not found." };
     const line = rentalEquipmentLineRepository.getById(lineId);
@@ -829,7 +829,7 @@ export function RentalProvider({
 
   function saveCommercialTermsForSelectedLines(rentalId: string, lineIds: string[], input: RentalCommercialTermsInput): RentalTransitionResult {
     if (!legacyMutationsEnabled) return unavailable();
-    if (!hasPermission("rental.commercialTerms.manage")) return { success: false, message: "You do not have permission to edit Commercial Terms." };
+    if (!hasPermission("rental.commercialTerms.update")) return { success: false, message: "You do not have permission to edit Commercial Terms." };
     const rental = rentalRepository.getById(rentalId);
     if (!rental) return { success: false, message: "Rental not found." };
     const selected = lineIds.map((id) => rentalEquipmentLineRepository.getById(id));

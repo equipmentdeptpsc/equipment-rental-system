@@ -19,6 +19,8 @@ export const PERMISSIONS = {
     "rental.approve",
     "rental.approval.submit",
     "rental.approval.decide",
+    "rental.commercialTerms.read",
+    "rental.commercialTerms.update",
     "rental.commercialTerms.manage",
     "rental.customerContact.update",
   ],
