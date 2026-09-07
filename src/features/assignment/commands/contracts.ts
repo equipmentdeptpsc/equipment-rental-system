@@ -27,6 +27,20 @@ export interface AssignmentCreationProjection {
   rowVersion: number;
 }
 
+export interface CancelAssignmentCommand extends OperationalCommandMetadata {
+  assignmentId: string;
+  expectedVersion: number;
+}
+
+export interface AssignmentCancellationProjection {
+  id: string;
+  equipmentId: string;
+  operatorId: string;
+  status: "Cancelled";
+  rowVersion: number;
+}
+
 export interface AssignmentCommandRepository {
   createAssignment(command: CreateAssignmentCommand): Promise<OperationalCommandResult<AssignmentCreationProjection>>;
+  cancelAssignment(command: CancelAssignmentCommand): Promise<OperationalCommandResult<AssignmentCancellationProjection>>;
 }
