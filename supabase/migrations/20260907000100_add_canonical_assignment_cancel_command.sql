@@ -38,7 +38,7 @@ BEGIN
   END IF;
 
   SELECT * INTO target FROM erp.assignments
-  WHERE id = command->>'assignmentId' AND company_id = tenant
+  WHERE id = command->>'assignmentId' AND company_id = tenant AND deleted_at IS NULL
   FOR UPDATE;
   IF target.id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'code', 'NOT_FOUND', 'message', 'Assignment was not found.', 'retryable', false, 'refreshRequired', false);

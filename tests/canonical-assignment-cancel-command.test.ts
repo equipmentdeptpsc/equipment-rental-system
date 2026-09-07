@@ -25,6 +25,7 @@ describe("canonical Assignment cancellation command", () => {
 
   it("cancels only Active unlinked Assignments without inventing a return date", () => {
     expect(sql).toContain("IF target.status <> 'Active'");
+    expect(sql).toContain("company_id = tenant AND deleted_at IS NULL");
     expect(sql).toContain("rental.assignment_id = target.id");
     expect(sql).toContain("line.assignment_id = target.id");
     expect(sql).toContain("rental.status NOT IN ('Returned', 'Closed', 'Cancelled')");
