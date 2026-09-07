@@ -19,6 +19,7 @@ vi.mock("@/features/rental/remote/canonicalRentalRefresh", () => ({ requestCanon
 
 const migration = readFileSync("supabase/migrations/20260729000300_phase_c2_mutation_functions.sql", "utf8");
 const finalLineMutation = readFileSync("supabase/migrations/20260729002400_phase_c4d_command_lookup_and_status_fix.sql", "utf8");
+const d2LineMutation = readFileSync("supabase/migrations/20260906000300_write_rental_line_actual_return_date.sql", "utf8");
 const expectationGate = readFileSync("supabase/migrations/20260828000200_canonical_rental_return_expectation_gate.sql", "utf8");
 const roots: Root[] = [];
 const active = { id: "rental-1", rentalNumber: "R-1", status: "Active", approvalStatus: "Approved", rowVersion: 8 } as RentalRecord;
@@ -26,7 +27,7 @@ const active = { id: "rental-1", rentalNumber: "R-1", status: "Active", approval
 function dependencies(returnAll = vi.fn(async () => ({ success: true, disposition: "ACCEPTED", value: { rentalId: active.id, lines: [], version: 1 } } as const)), ready = true) {
   const unavailable = vi.fn();
   return {
-    configuration: { persistenceMode: PersistenceMode.Remote, equipmentStatusSource: "supabase", remoteOperationalWritesEnabled: true },
+    configuration: { persistenceMode: PersistenceMode.Remote, equipmentStatusSource: "supabase", remoteOperationalWritesEnabled: false, remoteRentalReturnEnabled: true },
     commandRepositories: {
       canonicalRental: { activate: unavailable },
       rentalReturnCommands: { returnLine: unavailable, returnAll, getReturnReadiness: vi.fn(async () => ({ success: true, disposition: "ACCEPTED", serverOccurredAt: "2026-08-28T00:00:00Z", refresh: [], value: { rentalId: active.id, ready, historicalBoundary: "2026-08-27", blockers: ready ? [] : [{ code: "DEUR_EXPECTATION_UNRESOLVED", message: "Required historical DEUR expectation is unresolved.", rentalLineId: "line-1", workDate: "2026-08-27" }] } })) },
@@ -52,6 +53,8 @@ describe("canonical remote Rental Return remediation", () => {
     expect(migration).toContain("current_user_has_permission('rental.return')");
     expect(finalLineMutation).toContain("CREATE OR REPLACE FUNCTION command_return_rental_line(command jsonb)");
     expect(finalLineMutation).toContain("UPDATE erp.assignments AS a SET status='Completed'");
+    expect(d2LineMutation).toContain("actualReturnDate',command->>'actualReturnDate'");
+    expect(d2LineMutation).toContain("actual_return_date=return_business_date");
     expect(finalLineMutation).toContain("UPDATE erp.equipment AS e SET status_id=available_status");
     expect(expectationGate).toContain("CREATE OR REPLACE FUNCTION erp.get_rental_return_readiness(command jsonb)");
     expect(expectationGate).toContain("today_local-1");
@@ -91,5 +94,10 @@ describe("canonical remote Rental Return remediation", () => {
   it("hides Return without rental.return", async () => {
     auth.permissions.clear();
     expect((await render()).textContent).not.toContain("Return Equipment");
+  });
+
+  it("keeps Return hidden when the dedicated capability is disabled", async () => {
+    const input = dependencies(); input.configuration.remoteRentalReturnEnabled = false;
+    expect((await render(input)).textContent).not.toContain("Return Equipment");
   });
 });

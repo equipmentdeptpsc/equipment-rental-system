@@ -7,7 +7,7 @@ import { useRental } from "../context/RentalContext";
 import type { RentalRecord } from "../types";
 import { deriveRentalQuickActions, visibleRentalQuickActions, type RentalQuickActionId } from "../quick-actions/rentalQuickActions";
 import { useApplicationDependenciesCompatibility } from "@/app/composition";
-import { canUseCanonicalRemoteRentalActivateMutation, canUseCanonicalRemoteRentalApprovalMutations, canUseCanonicalRemoteRentalMutations, canUseCanonicalRemoteRentalReleaseMutation, canUseCanonicalRemoteRentalReserveMutation, canUseLegacyRentalMutations } from "../services/rentalRuntimeCapability";
+import { canUseCanonicalRemoteRentalActivateMutation, canUseCanonicalRemoteRentalApprovalMutations, canUseCanonicalRemoteRentalMutations, canUseCanonicalRemoteRentalReleaseMutation, canUseCanonicalRemoteRentalReserveMutation, canUseCanonicalRemoteRentalReturnMutation, canUseLegacyRentalMutations } from "../services/rentalRuntimeCapability";
 import { requestCanonicalRentalRefresh } from "../remote/canonicalRentalRefresh";
 import { getRentalApprovalStatus } from "../approval/rentalApproval";
 import { evaluateCanonicalApprovalDecisionEligibility } from "../approval/canonicalApprovalDecisionEligibility";
@@ -21,7 +21,8 @@ export default function RentalQuickActions({ rental, hideClose = false }: { rent
   const canonicalReserveMutations = canUseCanonicalRemoteRentalReserveMutation(configuration) && Boolean(commandRepositories.canonicalRental);
   const canonicalReleaseMutations = canUseCanonicalRemoteRentalReleaseMutation(configuration) && Boolean(commandRepositories.canonicalRental);
   const canonicalActivateMutations = canUseCanonicalRemoteRentalActivateMutation(configuration) && Boolean(commandRepositories.canonicalRental);
-  const mutationsAvailable = legacyMutations || canonicalOperationalMutations || canonicalApprovalMutations || canonicalReserveMutations || canonicalReleaseMutations || canonicalActivateMutations;
+  const canonicalReturnMutations = canUseCanonicalRemoteRentalReturnMutation(configuration) && Boolean(commandRepositories.rentalReturnCommands);
+  const mutationsAvailable = legacyMutations || canonicalOperationalMutations || canonicalApprovalMutations || canonicalReserveMutations || canonicalReleaseMutations || canonicalActivateMutations || canonicalReturnMutations;
   const { transitionRental, returnRental, releaseRental, submitForApproval, approveRental, rejectRental, getReleaseReadiness } = useRental();
   const { showToast } = useToast(); const [pending, setPending] = useState<RentalQuickActionId>();
   const [remoteReturnReady, setRemoteReturnReady] = useState(false);
@@ -35,7 +36,7 @@ export default function RentalQuickActions({ rental, hideClose = false }: { rent
   const decisionEligibility = evaluateCanonicalApprovalDecisionEligibility(rental, user?.id, permissions.approve);
   useEffect(() => {
     let current = true;
-    if (!canonicalOperationalMutations || rental.status !== "Active" || !permissions.return) { setRemoteReturnReady(false); return () => { current = false; }; }
+    if (!canonicalReturnMutations || rental.status !== "Active" || !permissions.return) { setRemoteReturnReady(false); return () => { current = false; }; }
     setRemoteReturnReady(false); setRemoteReturnMessage("Checking canonical Return readiness…");
     void commandRepositories.rentalReturnCommands.getReturnReadiness({ rentalId: rental.id }).then((result) => {
       if (!current) return;
@@ -44,7 +45,7 @@ export default function RentalQuickActions({ rental, hideClose = false }: { rent
       setRemoteReturnMessage(ready ? "Canonical Return readiness passed." : result.success ? result.value.blockers[0]?.message ?? "Return prerequisites are incomplete." : result.message);
     });
     return () => { current = false; };
-  }, [canonicalOperationalMutations, commandRepositories.rentalReturnCommands, permissions.return, rental.id, rental.status, rental.rowVersion]);
+  }, [canonicalReturnMutations, commandRepositories.rentalReturnCommands, permissions.return, rental.id, rental.status, rental.rowVersion]);
   useEffect(() => {
     let current = true;
     if (!canonicalReleaseMutations || rental.status !== "Reserved" || !permissions.release) {
@@ -60,19 +61,19 @@ export default function RentalQuickActions({ rental, hideClose = false }: { rent
     }).catch(() => { if (current) setRemoteReleaseReadiness({ status: "error", eligible: false, message: "Release readiness could not be verified." }); });
     return () => { current = false; };
   }, [canonicalReleaseMutations, commandRepositories.canonicalRental, permissions.release, rental.id, rental.status, rental.rowVersion]);
-  const model = canonicalOperationalMutations || canonicalApprovalMutations || canonicalReserveMutations || canonicalReleaseMutations || canonicalActivateMutations
+  const model = canonicalOperationalMutations || canonicalApprovalMutations || canonicalReserveMutations || canonicalReleaseMutations || canonicalActivateMutations || canonicalReturnMutations
     ? rental.status === "Draft"
       ? approval === "Pending" ? { actions: canonicalApprovalMutations && decisionEligibility.eligible ? [{ id: "approve" as const, label: "Approve Rental" }, { id: "reject" as const, label: "Reject Rental" }] : [], message: decisionEligibility.message ?? "Awaiting Manager Approval" }
         : approval === "Approved" ? { actions: (canonicalOperationalMutations || canonicalReserveMutations) && permissions.reserve ? [{ id: "reserve" as const, label: "Reserve Rental" }] : [], message: "Approved" }
           : { actions: canonicalApprovalMutations && permissions.submit ? [{ id: "submit" as const, label: approval === "Rejected" ? "Resubmit for Approval" : "Submit for Approval" }] : [], message: approval === "Rejected" ? rental.approvalDecisionRemarks ? `Rejected: ${rental.approvalDecisionRemarks}` : "Rejected" : undefined }
       : rental.status === "Reserved" ? { actions: (canonicalOperationalMutations || canonicalReleaseMutations) && permissions.release ? [{ id: "release" as const, label: "Release Equipment" }] : [], message: "Approved and reserved" }
         : rental.status === "Released" ? { actions: canonicalActivateMutations && permissions.activate ? [{ id: "activate" as const, label: "Activate Rental" }] : [], message: "Released" }
-        : rental.status === "Active" ? { actions: permissions.return ? [{ id: "return" as const, label: "Return Equipment" }] : [], message: "Active" }
+        : rental.status === "Active" ? { actions: canonicalReturnMutations && permissions.return ? [{ id: "return" as const, label: "Return Equipment" }] : [], message: "Active" }
         : { actions: [], message: undefined }
     : deriveRentalQuickActions(rental, permissions);
   async function run(id: RentalQuickActionId) {
     if (submissionPending.current) return;
-    if (canonicalOperationalMutations || canonicalApprovalMutations || canonicalReserveMutations || canonicalReleaseMutations || canonicalActivateMutations) {
+    if (canonicalOperationalMutations || canonicalApprovalMutations || canonicalReserveMutations || canonicalReleaseMutations || canonicalActivateMutations || canonicalReturnMutations) {
       const expectedVersion = rental.rowVersion;
       if (typeof expectedVersion !== "number") { showToast("Canonical Rental version is unavailable. Refresh and try again.", "error"); return; }
       const rejectionRemarks = id === "reject" ? window.prompt("Rejection reason") ?? "" : undefined;
@@ -90,7 +91,7 @@ export default function RentalQuickActions({ rental, hideClose = false }: { rent
         else if (id === "reserve" && (canonicalOperationalMutations || canonicalReserveMutations)) result = await repository.reserve(input);
         else if (id === "release" && (canonicalOperationalMutations || canonicalReleaseMutations)) result = await repository.release(input);
         else if (id === "activate" && (canonicalOperationalMutations || canonicalActivateMutations)) result = await repository.activate(input);
-        else if (id === "return" && canonicalOperationalMutations) {
+        else if (id === "return" && (canonicalOperationalMutations || canonicalReturnMutations)) {
           if (!/^\d{4}-\d{2}-\d{2}$/.test(actualReturnDate)) { showToast("Enter the authoritative Return business date.", "error"); return; }
           result = await commandRepositories.rentalReturnCommands.returnAll({ ...identity, rentalId: rental.id, actualReturnDate, expectedVersion });
         }
@@ -122,8 +123,8 @@ export default function RentalQuickActions({ rental, hideClose = false }: { rent
     showToast(result.success ? `${model.actions.find((item) => item.id === id)?.label ?? "Rental action"} completed.` : result.message ?? "Rental action failed.", result.success ? "success" : "error"); submissionPending.current = false; setPending(undefined);
   }
   const canEditTerms = hasPermission("rental.commercialTerms.update") && (legacyMutations ? ["Draft", "Assigned", "Reserved"].includes(rental.status) : canonicalOperationalMutations && rental.status === "Draft");
-  const actions = visibleRentalQuickActions(model, hideClose).filter((action) => legacyMutations || canonicalOperationalMutations || (canonicalReserveMutations && action.id === "reserve") || (canonicalReleaseMutations && action.id === "release") || (canonicalActivateMutations && action.id === "activate") || (canonicalApprovalMutations && ["submit", "approve", "reject"].includes(action.id)));
+  const actions = visibleRentalQuickActions(model, hideClose).filter((action) => legacyMutations || canonicalOperationalMutations || (canonicalReserveMutations && action.id === "reserve") || (canonicalReleaseMutations && action.id === "release") || (canonicalActivateMutations && action.id === "activate") || (canonicalReturnMutations && action.id === "return") || (canonicalApprovalMutations && ["submit", "approve", "reject"].includes(action.id)));
   const releaseReady = canonicalReleaseMutations ? remoteReleaseReadiness.status === "ready" && remoteReleaseReadiness.eligible : rental.status === "Reserved" ? getReleaseReadiness(rental.id).eligible : true;
   if (!mutationsAvailable) return null;
-  return <div className="flex flex-wrap items-center gap-2">{model.message && <span className="text-sm text-slate-600">{model.message}</span>}{canonicalOperationalMutations && rental.status === "Active" && permissions.return && <label className="text-sm text-slate-600">Return business date<input aria-label="Return business date" className="app-control ml-2" type="date" value={actualReturnDate} onChange={(event) => setActualReturnDate(event.target.value)} /></label>}{canEditTerms && <Link className="rounded border border-blue-600 px-3 py-2 text-sm font-medium text-blue-700" to={`/rentals/${rental.id}/commercial-terms`}>Edit Commercial Terms</Link>}{actions.map((action) => <Button key={action.id} variant="secondary" disabled={Boolean(pending) || (action.id === "release" && !releaseReady) || (canonicalOperationalMutations && action.id === "return" && (!remoteReturnReady || !/^\d{4}-\d{2}-\d{2}$/.test(actualReturnDate)))} title={action.id === "release" && !releaseReady ? canonicalReleaseMutations ? remoteReleaseReadiness.message : "Complete every DEUR release-readiness requirement first." : canonicalOperationalMutations && action.id === "return" && !remoteReturnReady ? remoteReturnMessage : canonicalOperationalMutations && action.id === "return" ? "Enter the authoritative Return business date." : undefined} onClick={() => run(action.id)}>{pending === action.id ? "Working…" : action.label}</Button>)}</div>;
+  return <div className="flex flex-wrap items-center gap-2">{model.message && <span className="text-sm text-slate-600">{model.message}</span>}{(canonicalOperationalMutations || canonicalReturnMutations) && rental.status === "Active" && permissions.return && <label className="text-sm text-slate-600">Return business date<input aria-label="Return business date" className="app-control ml-2" type="date" value={actualReturnDate} onChange={(event) => setActualReturnDate(event.target.value)} /></label>}{canEditTerms && <Link className="rounded border border-blue-600 px-3 py-2 text-sm font-medium text-blue-700" to={`/rentals/${rental.id}/commercial-terms`}>Edit Commercial Terms</Link>}{actions.map((action) => <Button key={action.id} variant="secondary" disabled={Boolean(pending) || (action.id === "release" && !releaseReady) || ((canonicalOperationalMutations || canonicalReturnMutations) && action.id === "return" && (!remoteReturnReady || !/^\d{4}-\d{2}-\d{2}$/.test(actualReturnDate)))} title={action.id === "release" && !releaseReady ? canonicalReleaseMutations ? remoteReleaseReadiness.message : "Complete every DEUR release-readiness requirement first." : (canonicalOperationalMutations || canonicalReturnMutations) && action.id === "return" && !remoteReturnReady ? remoteReturnMessage : (canonicalOperationalMutations || canonicalReturnMutations) && action.id === "return" ? "Enter the authoritative Return business date." : undefined} onClick={() => run(action.id)}>{pending === action.id ? "Working…" : action.label}</Button>)}</div>;
 }
