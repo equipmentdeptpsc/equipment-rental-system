@@ -9,12 +9,14 @@ export interface AssignmentRuntimeCapability {
   legacyMutations: boolean;
   canonicalMutations: boolean;
   canonicalCreation: boolean;
+  canonicalCancellation: boolean;
 }
 
 export function getAssignmentRuntimeCapability(configuration: Configuration, canonicalRepositoryAvailable = false): AssignmentRuntimeCapability {
   const local = configuration.persistenceMode === PersistenceMode.Local;
   const canonicalMutations = !local && configuration.remoteOperationalWritesEnabled && canonicalRepositoryAvailable;
-  return { canonicalReads: !local, legacyReads: local, legacyMutations: local, canonicalMutations, canonicalCreation: !local && canonicalRepositoryAvailable && (configuration.remoteOperationalWritesEnabled || configuration.remoteAssignmentCreateEnabled === true) };
+  const canonicalCancellation = !local && configuration.remoteAssignmentCancelEnabled === true && canonicalRepositoryAvailable;
+  return { canonicalReads: !local, legacyReads: local, legacyMutations: local, canonicalMutations, canonicalCreation: !local && canonicalRepositoryAvailable && (configuration.remoteOperationalWritesEnabled || configuration.remoteAssignmentCreateEnabled === true), canonicalCancellation };
 }
 
 export function canStartRentalFromCanonicalAssignment(input: {
