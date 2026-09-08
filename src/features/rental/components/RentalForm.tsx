@@ -286,29 +286,25 @@ export default function RentalForm({
           return;
         }
 
+        if (canonicalData && form.assignmentIds.length === 0) {
+          submission.fail("Select at least one active Assignment for a canonical Rental.");
+          return;
+        }
+
         void submission.submit({ ...form, expectedReturn: form.expectedReturn || undefined });
       }}
     >
       {submission.feedback}
-      <Select
-        searchable clearable
-        label="Equipment"
-        value={
-          form.equipmentId
-        }
-        disabled={
-          lockEquipment
-        }
-        options={
-          equipmentOptions
-        }
-        onChange={(e) =>
-          update(
-            "equipmentId",
-            e.target.value
-          )
-        }
-      />
+      {!canonicalData && (
+        <Select
+          searchable clearable
+          label="Equipment"
+          value={form.equipmentId}
+          disabled={lockEquipment}
+          options={equipmentOptions}
+          onChange={(e) => update("equipmentId", e.target.value)}
+        />
+      )}
 
       <Select
         searchable clearable
@@ -353,7 +349,7 @@ export default function RentalForm({
 
       <fieldset className="rounded-lg border p-4">
         <legend className="px-1 text-sm font-medium">Equipment Lines from Active Assignments</legend>
-        <p className="mb-3 text-xs text-slate-500">Select one or more Assignments from the Rental Project. Leave all unchecked to use the single Equipment and Operator fields above.</p>
+        <p className="mb-3 text-xs text-slate-500">Select one or more Active Assignments from the Rental Project. Canonical remote Rentals must be based on an existing Assignment.</p>
         <div className="space-y-2">
           {assignments.filter((item) => item.status === "Active" && (!form.projectId || item.projectId === form.projectId)).map((item) => {
             const machine = equipment.find((record) => record.id === item.equipmentId);
