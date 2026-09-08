@@ -1,13 +1,17 @@
-const required = ["VITE_PERSISTENCE_MODE", "VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"];
+const expectedProjectRef = "jtkctarqbwmqdcewthkn";
+const required = ["VITE_PERSISTENCE_MODE", "VITE_SUPABASE_URL"];
+const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() || process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
 const missing = required.filter((key) => !process.env[key]?.trim());
-if (process.env.VITE_PERSISTENCE_MODE !== "remote" || missing.length) {
+if (!publishableKey) missing.push("VITE_SUPABASE_PUBLISHABLE_KEY or SUPABASE_PUBLISHABLE_KEY");
+if (process.env.VITE_PERSISTENCE_MODE !== "remote" || process.env.VITE_REMOTE_OPERATIONAL_WRITES_ENABLED === "true" || missing.length) {
   console.error(`UAT build configuration invalid: ${missing.length ? `missing ${missing.join(", ")}` : "VITE_PERSISTENCE_MODE must be remote"}.`);
   process.exit(1);
 }
 try {
-  if (new URL(process.env.VITE_SUPABASE_URL).protocol !== "https:") throw new Error();
+  const url = new URL(process.env.VITE_SUPABASE_URL);
+  if (url.protocol !== "https:" || url.hostname !== `${expectedProjectRef}.supabase.co`) throw new Error();
 } catch {
-  console.error("UAT build configuration invalid: VITE_SUPABASE_URL must be HTTPS.");
+  console.error(`UAT build configuration invalid: VITE_SUPABASE_URL must target ${expectedProjectRef}.supabase.co over HTTPS.`);
   process.exit(1);
 }
 console.log("PASS UAT build configuration");
