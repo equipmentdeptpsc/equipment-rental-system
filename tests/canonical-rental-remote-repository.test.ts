@@ -25,7 +25,7 @@ describe("canonical remote Rental repository", () => {
     const response = { success: true, disposition: "REPLAYED", value: { rentalId: "r-1", rentalNumber: "RNT-2026-000001", status: "Draft", approvalStatus: "NotSubmitted", version: 1, lineIds: ["l-1"] } };
     const remote = client([{ data: response, error: null }]);
     const repository = new SupabaseCanonicalRentalRepository(remote.value as never);
-    const input = { commandId: "r-1", idempotencyKey: "stable-key", customerId: "c-1", projectId: "p-1", dateOut: "2026-08-22", rentalType: "Operated Rental" as const, lines: [{ assignmentId: "a-1" }] };
+    const input = { commandId: "r-1", idempotencyKey: "stable-key", customerId: "c-1", projectId: "p-1", dateOut: "2026-08-22", rentalType: "Operated Rental" as const, representativeName: "UAT D3E Review Representative", representativeEmail: "uat-d3e-review@example.test", lines: [{ assignmentId: "a-1" }] };
     expect(await repository.createDraft(input)).toEqual(response);
     expect(remote.rpc).toHaveBeenCalledWith("command_create_draft_rental", { command: input });
   });

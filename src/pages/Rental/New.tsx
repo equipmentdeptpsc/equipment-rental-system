@@ -140,6 +140,7 @@ export default function NewRental() {
       const result = await commandRepositories.canonicalRental!.createDraft({
         ...identity, customerId: data.customerId, projectId: data.projectId, dateOut: data.dateOut,
         expectedReturn: data.expectedReturn || undefined, rentalType: data.rentalType,
+        representativeName: data.customerRepresentativeName.trim(), representativeEmail: normalizeBusinessEmail(data.customerReviewEmail),
         lines: data.assignmentIds.map((assignmentId) => ({ assignmentId })),
       });
       if (!result.success) throw new Error(result.message);
