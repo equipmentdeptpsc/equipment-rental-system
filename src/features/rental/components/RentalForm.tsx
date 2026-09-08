@@ -359,7 +359,7 @@ export default function RentalForm({
             const machine = equipment.find((record) => record.id === item.equipmentId);
             const operator = operators.find((record) => record.id === item.operatorId);
             const duplicateSelected = form.assignmentIds.some((id) => id !== item.id && assignments.find((candidate) => candidate.id === id)?.equipmentId === item.equipmentId);
-            const eligible = Boolean(machine && !machine.deleted && machine.active !== false && ["Available", "Assigned"].includes(machine.status));
+            const eligible = Boolean(machine && !machine.deleted && machine.active !== false);
             return <label key={item.id} className={`flex items-center gap-3 rounded border p-3 text-sm ${eligible && !duplicateSelected ? "" : "opacity-50"}`}>
               <input type="checkbox" disabled={!eligible || duplicateSelected} checked={form.assignmentIds.includes(item.id)} onChange={(event) => update("assignmentIds", event.target.checked ? [...form.assignmentIds, item.id] : form.assignmentIds.filter((id) => id !== item.id))} />
               <span><strong>{getAssignmentDisplayName({ assignment: item, equipment: machine, operator, project: projects.find((record) => record.id === item.projectId) })}</strong><br /><span className="text-xs text-slate-500">{getAssignmentNumber(item.id, assignments)}</span></span>

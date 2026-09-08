@@ -52,4 +52,23 @@ describe("RentalForm review email", () => {
     expect(submitted).toHaveLength(1);
     expect((submitted[0] as { customerReviewEmail?: string }).customerReviewEmail).toBe("uat.d3e@example.test");
   });
+  it("keeps an active canonical Assignment selectable when its Equipment has no legacy status label", async () => {
+    const container = document.createElement("div");
+    root = createRoot(container);
+    await act(async () => root?.render(createElement(RentalForm, {
+      onSubmit: (): void => undefined,
+      initialCustomerId: customer.id,
+      initialProjectId: "project-1",
+      canonicalData: {
+        equipment: [{ id: "equipment-1", active: true, deleted: false, status: undefined }] as never,
+        customers: [customer],
+        projects: [{ id: "project-1", customerId: customer.id, projectCode: "P-1", projectName: "Project", status: "Active" }] as never,
+        operators: [{ id: "operator-1", name: "Operator", status: "Active" }] as never,
+        assignments: [{ id: "assignment-1", equipmentId: "equipment-1", operatorId: "operator-1", projectId: "project-1", status: "Active" }] as never,
+        costCodes: [], activityCodes: [],
+      },
+    })));
+    const assignment = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    expect(assignment.disabled).toBe(false);
+  });
 });
