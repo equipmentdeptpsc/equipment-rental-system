@@ -24,6 +24,7 @@ import { canUseAnyRentalMutations, canUseLegacyRentalMutations, REMOTE_RENTAL_MU
 import { resolveRentalWorkspaceDeurPolicy } from "@/features/rental/services/resolveRentalWorkspaceDeurPolicy";
 import { useState } from "react";
 import { requestCanonicalRentalRefresh } from "@/features/rental/remote/canonicalRentalRefresh";
+import RentalReturnEvidence from "./RentalReturnEvidence";
 
 export default function RentalWorkspaceHeader({ activeTab }: { activeTab: WorkspaceTab }) {
   const dependencies = useApplicationDependenciesCompatibility();
@@ -66,6 +67,7 @@ export default function RentalWorkspaceHeader({ activeTab }: { activeTab: Worksp
 
       <RentalWorkspaceSummaryStrip />
       <RentalWorkspaceWorkflowPanel />
+      <RentalReturnEvidence />
 
       <RentalDeurComplianceSummary result={displayedCompliance} policy={displayedPolicy.policy} policyStaged={displayedPolicy.staged} onWaive={hasPermission("deur.expectation.waive")&&dependencies.commandRepositories.canonicalRental?.waiveDeurExpectation ? expectation=>{setWaiverTarget(expectation);setWaiverReason("");setWaiverMessage("");}:undefined} />
       {waiverTarget&&<section className="rounded border border-amber-300 bg-amber-50 p-4" aria-label="Historical DEUR expectation waiver"><h3 className="font-semibold">Waive {waiverTarget.workDate} DEUR expectation</h3><p className="mt-1 text-sm">This records an auditable exception. It does not create or modify a DEUR.</p><label className="mt-3 block text-sm font-medium">Audit reason<textarea className="mt-1 block w-full rounded border p-2" value={waiverReason} onChange={event=>setWaiverReason(event.target.value)} /></label><div className="mt-3 flex gap-2"><button type="button" className="rounded bg-amber-700 px-3 py-2 text-sm text-white disabled:opacity-50" disabled={!waiverReason.trim()} onClick={async()=>{const commandId=crypto.randomUUID(),result=await dependencies.commandRepositories.canonicalRental!.waiveDeurExpectation!({commandId,idempotencyKey:crypto.randomUUID(),rentalId:aggregate.rental.id,rentalEquipmentLineId:waiverTarget.rentalEquipmentLineId!,workDate:waiverTarget.workDate,expectationFingerprint:waiverTarget.expectationFingerprint!,reason:waiverReason.trim()});setWaiverMessage(result.success?"Historical DEUR expectation waived with canonical audit evidence.":result.message);if(result.success){setWaiverTarget(undefined);setWaiverReason("");requestCanonicalRentalRefresh();}}}>Confirm waiver</button><button type="button" className="rounded border px-3 py-2 text-sm" onClick={()=>{setWaiverTarget(undefined);setWaiverReason("");}}>Cancel</button></div></section>}

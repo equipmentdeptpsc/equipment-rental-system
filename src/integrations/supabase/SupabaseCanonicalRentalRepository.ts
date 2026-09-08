@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CanonicalCommandResult, CanonicalCommandValue, CanonicalReadResult, CanonicalRentalReferenceData, CanonicalRentalReleaseReadiness, CanonicalRentalRemoteRepository, CanonicalRentalWorkspace, CanonicalVersionedInput, ConfigureCanonicalCustomerReviewInput, CreateCanonicalDraftInput, DecideCanonicalApprovalInput, UpdateCanonicalTermsInput } from "@/features/rental/remote/contracts";
+import type { CanonicalCommandResult, CanonicalCommandValue, CanonicalReadResult, CanonicalRentalReferenceData, CanonicalRentalReleaseReadiness, CanonicalRentalRemoteRepository, CanonicalRentalReturnEvidence, CanonicalRentalWorkspace, CanonicalVersionedInput, ConfigureCanonicalCustomerReviewInput, CreateCanonicalDraftInput, DecideCanonicalApprovalInput, UpdateCanonicalTermsInput } from "@/features/rental/remote/contracts";
 
 const messages: Record<string, string> = {
   UNAUTHENTICATED: "Your session has expired. Sign in and try again.", FORBIDDEN: "You do not have permission to perform this action.",
@@ -21,6 +21,7 @@ export class SupabaseCanonicalRentalRepository implements CanonicalRentalRemoteR
     return dispositions.success?{success:true as const,value:{...workspace.value,...dispositions.value}}:dispositions;
   }
   async readReferenceData() { return this.read<CanonicalRentalReferenceData>("read_canonical_rental_reference_data", {}, value => ({ costCodes: array(value.costCodes), activityCodes: array(value.activityCodes) })); }
+  async readReturnEvidence(rentalId: string, rentalEquipmentLineId: string) { return this.read<CanonicalRentalReturnEvidence>("read_rental_return_evidence", { target_rental_id:rentalId, target_rental_equipment_line_id:rentalEquipmentLineId }, value => value as unknown as CanonicalRentalReturnEvidence); }
   async getReleaseReadiness(rentalId: string): Promise<CanonicalReadResult<CanonicalRentalReleaseReadiness>> {
     try {
       const { data, error } = await this.client.schema("erp").rpc("rental_release_readiness", { target_rental_id: rentalId });
