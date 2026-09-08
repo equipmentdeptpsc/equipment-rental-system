@@ -39,7 +39,7 @@ describe("RentalForm review email", () => {
     const submitted: unknown[] = [];
     const container = document.createElement("div");
     root = createRoot(container);
-    const props = { onSubmit: (data: unknown): void => { submitted.push(data); }, initialCustomerId: customer.id, canonicalData: { equipment: [], customers: [customer], projects: [], operators: [], assignments: [], costCodes: [], activityCodes: [] } };
+    const props = { onSubmit: (data: unknown): void => { submitted.push(data); }, initialCustomerId: customer.id, initialProjectId: "project-1", canonicalData: { equipment: [{ id: "equipment-1", active: true, deleted: false }] as never, customers: [customer], projects: [{ id: "project-1", customerId: customer.id, projectCode: "P-1", projectName: "Project", status: "Active" }] as never, operators: [{ id: "operator-1", name: "Operator", status: "Active" }] as never, assignments: [{ id: "assignment-1", equipmentId: "equipment-1", operatorId: "operator-1", projectId: "project-1", status: "Active" }] as never, costCodes: [], activityCodes: [] } };
     await act(async () => root?.render(createElement(RentalForm, props)));
     const email = [...container.querySelectorAll("input")].find((input) => input.type === "email") as HTMLInputElement;
     await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(email, "uat.d3e@example.test"); email.dispatchEvent(new Event("input", { bubbles: true })); });
@@ -48,6 +48,7 @@ describe("RentalForm review email", () => {
     await act(async () => root?.render(createElement(RentalForm, { ...props, canonicalData: { ...props.canonicalData, customers: [{ ...customer }] } })));
     const refreshedEmail = [...container.querySelectorAll("input")].find((input) => input.type === "email") as HTMLInputElement;
     expect(refreshedEmail.value).toBe("uat.d3e@example.test");
+    await act(async () => { (container.querySelector('input[type="checkbox"]') as HTMLInputElement).click(); });
     await act(async () => container.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
     expect(submitted).toHaveLength(1);
     expect((submitted[0] as { customerReviewEmail?: string }).customerReviewEmail).toBe("uat.d3e@example.test");
@@ -70,5 +71,27 @@ describe("RentalForm review email", () => {
     })));
     const assignment = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
     expect(assignment.disabled).toBe(false);
+  });
+
+  it("hides direct Equipment selection and rejects canonical Rental submit without an Assignment", async () => {
+    const submitted: unknown[] = [];
+    const container = document.createElement("div");
+    root = createRoot(container);
+    await act(async () => root?.render(createElement(RentalForm, { onSubmit: (data: unknown): void => { submitted.push(data); }, canonicalData: { equipment: [{ id: "equipment-1", active: true, deleted: false }] as never, customers: [customer], projects: [{ id: "project-1", customerId: customer.id, projectCode: "P-1", projectName: "Project", status: "Active" }] as never, operators: [], assignments: [], costCodes: [], activityCodes: [] }, initialCustomerId: customer.id, initialProjectId: "project-1" })));
+    expect([...container.querySelectorAll("label")].some((label) => label.textContent?.trim() === "Equipment")).toBe(false);
+    await act(async () => container.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    expect(submitted).toHaveLength(0);
+  });
+
+  it("submits canonical Rental data only with Assignment-backed lines", async () => {
+    const submitted: unknown[] = [];
+    const container = document.createElement("div");
+    root = createRoot(container);
+    await act(async () => root?.render(createElement(RentalForm, { onSubmit: (data: unknown): void => { submitted.push(data); }, canonicalData: { equipment: [{ id: "equipment-1", active: true, deleted: false }] as never, customers: [customer], projects: [{ id: "project-1", customerId: customer.id, projectCode: "P-1", projectName: "Project", status: "Active" }] as never, operators: [{ id: "operator-1", name: "Operator", status: "Active" }] as never, assignments: [{ id: "assignment-1", equipmentId: "equipment-1", operatorId: "operator-1", projectId: "project-1", status: "Active" }] as never, costCodes: [], activityCodes: [] }, initialCustomerId: customer.id, initialProjectId: "project-1" })));
+    const assignment = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    await act(async () => { assignment.click(); });
+    await act(async () => container.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    expect(submitted).toHaveLength(1);
+    expect((submitted[0] as { assignmentIds: string[] }).assignmentIds).toEqual(["assignment-1"]);
   });
 });
