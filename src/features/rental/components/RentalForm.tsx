@@ -21,6 +21,7 @@ import { useAssignment } from "@/features/assignment/context/AssignmentContext";
 import { useCostCodes } from "@/features/masters/cost-code/context/useCostCodes";
 import { useActivityCodes } from "@/features/masters/activity-code";
 import { createRentalOperationalMetadataSnapshot } from "@/features/rental/services/createRentalOperationalMetadataSnapshot";
+import { selectableRentalEquipment } from "@/features/rental/services/selectableRentalEquipment";
 import RentalOperationalMetadataCard from "./RentalOperationalMetadataCard";
 import { getAssignmentDisplayName, getAssignmentNumber } from "@/features/assignment/utils/assignmentDisplay";
 import type { EquipmentRecord } from "@/features/equipment/types";
@@ -116,17 +117,9 @@ export default function RentalForm({
   const metadataCostCodes = canonicalData?.costCodes ?? costCodes.map((record) => ({ id: record.id, code: record.code, name: record.description }));
   const metadataActivityCodes = canonicalData?.activityCodes ?? activityCodes.map((record) => ({ id: record.id, code: record.activityCode, name: record.description }));
 
-    const availableEquipment =
+  const availableEquipment =
     useMemo(() => {
-  
-      const available =
-        equipment.filter(
-          e =>
-            e.active !== false &&
-            !e.deleted &&
-            e.status ===
-              "Available"
-        );
+      const available = selectableRentalEquipment(equipment);
   
       if (!initialEquipmentId)
         return available;
