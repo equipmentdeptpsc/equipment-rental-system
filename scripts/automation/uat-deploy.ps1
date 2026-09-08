@@ -3,6 +3,13 @@ param([ValidateSet('Migration','Application')][string]$Kind,[string]$ExpectedMig
 Set-Location $script:RepositoryRoot
 Assert-UatTarget
 $supabaseCli = Resolve-SupabaseCli
+if ($Kind -eq 'Application') {
+  # Build-time values are process-scoped; the key is never printed or persisted.
+  if (-not $env:VITE_PERSISTENCE_MODE) { $env:VITE_PERSISTENCE_MODE = 'remote' }
+  if (-not $env:VITE_SUPABASE_URL) { $env:VITE_SUPABASE_URL = "https://$($script:ExpectedUatProjectRef).supabase.co" }
+  if (-not $env:VITE_SUPABASE_PUBLISHABLE_KEY -and $env:SUPABASE_PUBLISHABLE_KEY) { $env:VITE_SUPABASE_PUBLISHABLE_KEY = $env:SUPABASE_PUBLISHABLE_KEY }
+  if (-not $env:VITE_REMOTE_OPERATIONAL_WRITES_ENABLED) { $env:VITE_REMOTE_OPERATIONAL_WRITES_ENABLED = 'false' }
+}
 if ($Kind -eq 'Migration') {
   if (-not $ExpectedMigration) { throw 'ExpectedMigration is required for migration deployment.' }
   & (Join-Path $PSScriptRoot 'uat-preflight.ps1') -ExpectedPendingMigration $ExpectedMigration
