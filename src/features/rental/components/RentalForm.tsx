@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -222,6 +222,7 @@ export default function RentalForm({
       assignmentIds: initialAssignmentIds,
   
     });
+  const editedContactFields = useRef(new Set<"customerRepresentativeName" | "customerReviewEmail">());
 
   const projectOptions = useMemo(
     () => [
@@ -242,8 +243,12 @@ export default function RentalForm({
       equipmentId: initialEquipmentId ?? prev.equipmentId,
       customerId: initialCustomerId ?? prev.customerId,
       customer: customers.find((item) => item.id === initialCustomerId)?.companyName ?? prev.customer,
-      customerRepresentativeName: customers.find((item) => item.id === initialCustomerId)?.contactPerson ?? prev.customerRepresentativeName,
-      customerReviewEmail: customers.find((item) => item.id === initialCustomerId)?.email ?? prev.customerReviewEmail,
+      customerRepresentativeName: editedContactFields.current.has("customerRepresentativeName")
+        ? prev.customerRepresentativeName
+        : customers.find((item) => item.id === initialCustomerId)?.contactPerson ?? prev.customerRepresentativeName,
+      customerReviewEmail: editedContactFields.current.has("customerReviewEmail")
+        ? prev.customerReviewEmail
+        : customers.find((item) => item.id === initialCustomerId)?.email ?? prev.customerReviewEmail,
       projectId: initialProjectId && !prev.projectId ? initialProjectId : prev.projectId,
       operatorId: initialOperatorId ?? prev.operatorId,
     }));
@@ -255,6 +260,9 @@ export default function RentalForm({
     key: K,
     value: RentalFormData[K]
   ) {
+    if (key === "customerRepresentativeName" || key === "customerReviewEmail") {
+      editedContactFields.current.add(key);
+    }
     setForm((prev) => ({
       ...prev,
       [key]: value,
@@ -314,6 +322,8 @@ export default function RentalForm({
             const customer = customers.find(
               (item) => item.id === e.target.value
             );
+            editedContactFields.current.delete("customerRepresentativeName");
+            editedContactFields.current.delete("customerReviewEmail");
             setForm((previous) => ({ ...previous, customerId: e.target.value, customer: customer?.companyName ?? "", customerRepresentativeName: customer?.contactPerson ?? "", customerReviewEmail: customer?.email ?? "", projectId: projects.some((project) => project.id === previous.projectId && project.customerId === e.target.value) ? previous.projectId : "", assignmentIds: [] }));
           }}
       />
