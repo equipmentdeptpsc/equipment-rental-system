@@ -13,7 +13,7 @@ import type { CanonicalReferenceCode } from "@/features/rental/remote/contracts"
 interface References { activityCodes: CanonicalReferenceCode[] }
 
 export default function RemoteAssignmentForm() {
-  const { repositories, commandRepositories } = useApplicationDependenciesCompatibility();
+  const { commandRepositories } = useApplicationDependenciesCompatibility();
   const data = useCanonicalAssignmentData();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
