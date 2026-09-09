@@ -49,4 +49,24 @@ describe("canonical remote Rental repository", () => {
     const remote = client([{ data: { eligible: false, reasonCodes: ["FORBIDDEN"], incompleteEquipmentLines: [] }, error: null }]);
     expect(await new SupabaseCanonicalRentalRepository(remote.value as never).getReleaseReadiness("wrong-rental")).toMatchObject({ success: false, code: "FORBIDDEN" });
   });
+
+  it("surfaces only a whitelisted draft-validation reason while retaining the compatible code", async () => {
+    const remote = client([{ data: { success: false, code: "VALIDATION_REJECTED", details: { reason: "INVALID_LINE_SHAPE", internal: "must-not-reach-ui" } }, error: null }]);
+    const result = await new SupabaseCanonicalRentalRepository(remote.value as never).createDraft({ commandId: "r-1", idempotencyKey: "key", customerId: "c-1", projectId: "p-1", dateOut: "2026-08-22", rentalType: "Bare Rental", representativeName: "Representative", representativeEmail: "representative@example.test", lines: [{ assignmentId: "a-1" }] });
+    expect(result).toEqual({ success: false, code: "VALIDATION_REJECTED", message: "The request is incomplete or invalid. (INVALID_LINE_SHAPE)", details: { reason: "INVALID_LINE_SHAPE" }, currentVersion: undefined });
+  });
+
+  it("does not expose unrecognized validation detail and preserves non-validation mappings", async () => {
+    const remote = client([
+      { data: { success: false, code: "VALIDATION_REJECTED", details: { reason: "SQL_INTERNAL", detail: "must-not-reach-ui" } }, error: null },
+      { data: { success: false, code: "EQUIPMENT_INTERVAL_CONFLICT" }, error: null },
+      { data: { success: false, code: "MISSING_RELATIONSHIP" }, error: null },
+    ]);
+    const repository = new SupabaseCanonicalRentalRepository(remote.value as never);
+    const input = { commandId: "r-1", idempotencyKey: "key", customerId: "c-1", projectId: "p-1", dateOut: "2026-08-22", rentalType: "Bare Rental" as const, representativeName: "Representative", representativeEmail: "representative@example.test", lines: [{ assignmentId: "a-1" }] };
+    expect(await repository.createDraft(input)).toMatchObject({ success: false, code: "VALIDATION_REJECTED", message: "The request is incomplete or invalid.", details: undefined });
+    expect(await repository.createDraft(input)).toMatchObject({ success: false, code: "EQUIPMENT_INTERVAL_CONFLICT", message: "This equipment is already committed for the requested interval." });
+    expect(await repository.createDraft(input)).toMatchObject({ success: false, code: "MISSING_RELATIONSHIP", message: "Referenced Rental information has changed or is unavailable. Refresh and try again." });
+  });
+
 });
