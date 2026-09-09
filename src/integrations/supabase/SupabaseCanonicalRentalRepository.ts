@@ -1,10 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CanonicalCommandResult, CanonicalCommandValue, CanonicalReadResult, CanonicalRentalReferenceData, CanonicalRentalReleaseReadiness, CanonicalRentalRemoteRepository, CanonicalRentalReturnEvidence, CanonicalRentalWorkspace, CanonicalVersionedInput, ConfigureCanonicalCustomerReviewInput, CreateCanonicalDraftInput, DecideCanonicalApprovalInput, UpdateCanonicalTermsInput } from "@/features/rental/remote/contracts";
+import type { CanonicalCommandResult, CanonicalCommandValue, CanonicalDraftValidationReason, CanonicalReadResult, CanonicalRentalReferenceData, CanonicalRentalReleaseReadiness, CanonicalRentalRemoteRepository, CanonicalRentalReturnEvidence, CanonicalRentalWorkspace, CanonicalVersionedInput, ConfigureCanonicalCustomerReviewInput, CreateCanonicalDraftInput, DecideCanonicalApprovalInput, UpdateCanonicalTermsInput } from "@/features/rental/remote/contracts";
 
 const messages: Record<string, string> = {
   UNAUTHENTICATED: "Your session has expired. Sign in and try again.", FORBIDDEN: "You do not have permission to perform this action.",
   VALIDATION_REJECTED: "The request is incomplete or invalid.", NOT_FOUND: "Referenced Rental information has changed or is unavailable. Refresh and try again.",
-  MISSING_RELATIONSHIP: "Referenced Rental information has changed or is unavailable. Refresh and try again.", EQUIPMENT_UNAVAILABLE: "This equipment already has an active or pending Rental.",
+  MISSING_RELATIONSHIP: "Referenced Rental information has changed or is unavailable. Refresh and try again.", EQUIPMENT_UNAVAILABLE: "This equipment already has an active or pending Rental.", EQUIPMENT_INTERVAL_CONFLICT: "This equipment is already committed for the requested interval.",
   RENTAL_NUMBER_CONFLICT: "Rental number allocation conflicted. Please retry.", RENTAL_CONFLICT: "This Rental already exists.", CONFLICT: "This Rental changed while you were working. Refresh and try again.",
   LINE_SET_MISMATCH: "The Rental equipment list changed. Refresh and try again.", INVALID_TRANSITION: "This action is not available for the Rental's current state.",
   RELEASE_NOT_READY: "This Rental is not ready for release.", IDEMPOTENCY_MISMATCH: "This request conflicts with an earlier submission. Refresh before retrying.",
@@ -68,4 +68,13 @@ function object(value: unknown): Record<string, unknown> | undefined { return va
 function array<T>(value: unknown): T[] { return Array.isArray(value) ? value as T[] : []; }
 function strings(value: unknown): string[] { return array<unknown>(value).filter((item): item is string => typeof item === "string"); }
 function code(value: unknown): keyof typeof messages { return typeof value === "string" && value in messages ? value : "INVALID_RESPONSE"; }
-function failure(value: keyof typeof messages, source?: Record<string, unknown>): Extract<CanonicalCommandResult, { success: false }> { return { success: false, code: value as never, message: messages[value], details: source?.details, currentVersion: typeof source?.currentVersion === "number" ? source.currentVersion : undefined }; }
+const draftValidationReasons = new Set<CanonicalDraftValidationReason>(["INVALID_COMMAND", "INVALID_CONTACT", "INVALID_LINE_SET", "INVALID_DATE", "INVALID_IDEMPOTENCY_STATE", "INVALID_LINE_SHAPE"]);
+function safeValidationDetails(value: unknown): { reason: CanonicalDraftValidationReason } | undefined {
+  const details = object(value);
+  const reason = details?.reason;
+  return typeof reason === "string" && draftValidationReasons.has(reason as CanonicalDraftValidationReason) ? { reason: reason as CanonicalDraftValidationReason } : undefined;
+}
+function failure(value: keyof typeof messages, source?: Record<string, unknown>): Extract<CanonicalCommandResult, { success: false }> {
+  const validation = value === "VALIDATION_REJECTED" ? safeValidationDetails(source?.details) : undefined;
+  return { success: false, code: value as never, message: validation ? `${messages[value]} (${validation.reason})` : messages[value], details: value === "VALIDATION_REJECTED" ? validation : source?.details, currentVersion: typeof source?.currentVersion === "number" ? source.currentVersion : undefined };
+}
