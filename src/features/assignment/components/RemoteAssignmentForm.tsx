@@ -10,14 +10,14 @@ import { useCanonicalAssignmentData } from "@/features/assignment/hooks/useCanon
 import { requestCanonicalAssignmentRefresh } from "@/features/assignment/remote/canonicalAssignmentRefresh";
 import type { CanonicalReferenceCode } from "@/features/rental/remote/contracts";
 
-interface References { availableStatusIds: Set<string>; activityCodes: CanonicalReferenceCode[] }
+interface References { activityCodes: CanonicalReferenceCode[] }
 
 export default function RemoteAssignmentForm() {
-  const { repositories, commandRepositories } = useApplicationDependenciesCompatibility();
+  const { commandRepositories } = useApplicationDependenciesCompatibility();
   const data = useCanonicalAssignmentData();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [references, setReferences] = useState<{ status: "loading" | "loaded" | "error"; value: References }>({ status: "loading", value: { availableStatusIds: new Set(), activityCodes: [] } });
+  const [references, setReferences] = useState<{ status: "loading" | "loaded" | "error"; value: References }>({ status: "loading", value: { activityCodes: [] } });
   const [form, setForm] = useState({ equipmentId: searchParams.get("equipment") ?? "", operatorId: "", projectId: "", assignedDate: new Date().toISOString().split("T")[0], expectedReturn: "", activityCodeId: "", remarks: "" });
   const identity = useRef<{ assignmentId: string; commandId: string; idempotencyKey: string } | undefined>(undefined);
   const submission = useFormSubmission("Assignment", async () => {
@@ -30,15 +30,15 @@ export default function RemoteAssignmentForm() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([repositories.equipmentStatusRead.list(), commandRepositories.canonicalRental?.readReferenceData()]).then(([statuses, codes]) => {
+    void commandRepositories.canonicalRental?.readReferenceData().then((codes) => {
       if (!active) return;
-      if (!statuses.success || !codes?.success) return setReferences({ status: "error", value: { availableStatusIds: new Set(), activityCodes: [] } });
-      setReferences({ status: "loaded", value: { availableStatusIds: new Set(statuses.value.filter((item) => item.active && !item.deleted && item.status.trim().toLowerCase() === "available").map((item) => item.id)), activityCodes: codes.value.activityCodes } });
-    }).catch(() => { if (active) setReferences({ status: "error", value: { availableStatusIds: new Set(), activityCodes: [] } }); });
+      if (!codes?.success) return setReferences({ status: "error", value: { activityCodes: [] } });
+      setReferences({ status: "loaded", value: { activityCodes: codes.value.activityCodes } });
+    }).catch(() => { if (active) setReferences({ status: "error", value: { activityCodes: [] } }); });
     return () => { active = false; };
-  }, [commandRepositories.canonicalRental, repositories.equipmentStatusRead]);
+  }, [commandRepositories.canonicalRental]);
 
-  const availableEquipment = useMemo(() => data.data.equipment.filter((item) => item.active && !item.deleted && item.statusId && references.value.availableStatusIds.has(item.statusId) && !data.data.assignments.some((assignment) => assignment.status === "Active" && assignment.equipmentId === item.id)), [data.data.assignments, data.data.equipment, references.value.availableStatusIds]);
+  const availableEquipment = useMemo(() => data.data.equipment.filter((item) => item.active && !item.deleted), [data.data.equipment]);
   const availableOperators = useMemo(() => data.data.operators.filter((item) => item.status === "Active" && !item.deleted && !data.data.assignments.some((assignment) => assignment.status === "Active" && assignment.operatorId === item.id)), [data.data.assignments, data.data.operators]);
   const activeProjects = data.data.projects.filter((item) => item.active);
   const update = (key: keyof typeof form, value: string) => setForm((previous) => ({ ...previous, [key]: value }));

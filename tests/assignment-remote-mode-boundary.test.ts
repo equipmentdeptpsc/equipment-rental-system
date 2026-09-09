@@ -19,7 +19,7 @@ const roots: Root[] = [];
 const page = (items: unknown[]) => repositorySuccess({ items, nextCursor: undefined });
 const assignment = { id: "canonical-assignment", equipmentId: "canonical-equipment", operatorId: "canonical-operator", projectId: "canonical-project", assignedDate: "2026-08-23", expectedReturn: "2026-08-24", remarks: "Canonical", status: "Active" as const };
 
-function remoteDependencies(input: { assignments?: unknown[]; failure?: boolean; writesEnabled?: boolean; assignmentCreateEnabled?: boolean; assignmentRepository?: boolean } = {}): ApplicationDependencies {
+function remoteDependencies(input: { assignments?: unknown[]; equipment?: unknown[]; failure?: boolean; writesEnabled?: boolean; assignmentCreateEnabled?: boolean; assignmentRepository?: boolean } = {}): ApplicationDependencies {
   const local = createLocalApplicationDependencies();
   const failure = repositoryFailure("REMOTE_FAILED", "failed", { context: {}, recoverability: "RETRYABLE", recommendedAction: "Retry" });
   const repository = (items: unknown[]) => ({ ...local.readRepositories.assignments, list: vi.fn(async () => input.failure ? failure : page(items)) });
@@ -29,7 +29,7 @@ function remoteDependencies(input: { assignments?: unknown[]; failure?: boolean;
     readRepositories: {
       ...local.readRepositories,
       assignments: repository(input.assignments ?? []),
-      equipment: repository([{ id: "canonical-equipment", assetNo: "ME-REMOTE", equipmentName: "Remote Equipment", statusId: "equipment-status-available", active: true }]),
+      equipment: repository(input.equipment ?? [{ id: "canonical-equipment", assetNo: "ME-REMOTE", equipmentName: "Remote Equipment", statusId: "equipment-status-available", active: true }]),
       operators: repository([{ id: "canonical-operator", name: "Remote Operator", status: "Active" }]),
       projects: repository([{ id: "canonical-project", projectCode: "REMOTE", name: "Remote Project", status: "Active" }]),
     } as ApplicationDependencies["readRepositories"],
@@ -134,6 +134,23 @@ describe("canonical Assignment remote UI boundary", () => {
     expect(refreshed).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Canonical destination");
     unsubscribe();
+  });
+
+  it("keeps active and non-Available canonical Equipment selectable while excluding inactive or deleted rows", async () => {
+    authState.permissions.add("assignment.create");
+    const equipment = [
+      { id: "assigned-equipment", assetNo: "D3-E1-20260908", equipmentName: "Existing Assignment", statusId: "status-assigned", active: true },
+      { id: "maintenance-equipment", assetNo: "D3-E2-20260908", equipmentName: "Non-Available Status", statusId: "status-maintenance", active: true },
+      { id: "inactive-equipment", assetNo: "D3-E3-20260908", equipmentName: "Inactive", statusId: "status-available", active: false },
+      { id: "deleted-equipment", assetNo: "D3-E4-20260908", equipmentName: "Deleted", statusId: "status-available", active: true, deleted: true },
+    ];
+    const container = await render(createElement(NewAssignment), remoteDependencies({ assignments: [{ ...assignment, equipmentId: "assigned-equipment" }], equipment }), "/assignments/new");
+    await act(async () => { await Promise.resolve(); });
+    const equipmentInput = container.querySelector<HTMLInputElement>("input[role=combobox]")!;
+    await act(async () => { equipmentInput.click(); });
+    const options = [...container.querySelectorAll("[role=option]")].map((node) => node.textContent);
+    expect(options).toEqual(expect.arrayContaining(["D3-E1-20260908 - Existing Assignment", "D3-E2-20260908 - Non-Available Status"]));
+    expect(options).not.toEqual(expect.arrayContaining(["D3-E3-20260908 - Inactive", "D3-E4-20260908 - Deleted"]));
   });
 
   it("keeps Assigned Date required before invoking the canonical command", async () => {
