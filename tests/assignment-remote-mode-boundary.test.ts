@@ -14,6 +14,7 @@ import Assignments from "@/pages/Assignments";
 import AssignmentDetails from "@/pages/Assignments/Details";
 import NewAssignment from "@/pages/Assignments/New";
 import EditAssignment from "@/pages/Assignments/Edit";
+import { SupabaseAssignmentCommandRepository } from "@/integrations/supabase/SupabaseAssignmentCommandRepository";
 
 const roots: Root[] = [];
 const page = (items: unknown[]) => repositorySuccess({ items, nextCursor: undefined });
@@ -48,6 +49,27 @@ async function render(element: React.ReactNode, dependencies = remoteDependencie
 afterEach(async () => { authState.permissions = new Set(["rental.create"]); while (roots.length) await act(async () => roots.pop()?.unmount()); });
 
 describe("canonical Assignment remote UI boundary", () => {
+  it("preserves and maps the canonical interval conflict", async () => {
+    const repository = new SupabaseAssignmentCommandRepository({
+      schema: () => ({ rpc: vi.fn(async () => ({ data: { success: false, code: "EQUIPMENT_INTERVAL_CONFLICT" }, error: null })) }),
+    });
+    await expect(repository.createAssignment({ commandId: "command-1", idempotencyKey: "command-1", equipmentId: "equipment-1", operatorId: "operator-1", projectId: "project-1", assignedDate: "2031-03-11", expectedReturn: "2031-03-11", remarks: "" })).resolves.toMatchObject({
+      success: false,
+      code: "EQUIPMENT_INTERVAL_CONFLICT",
+      message: "This equipment is already committed for the requested interval.",
+    });
+  });
+
+  it("keeps unrelated persistence failures on the generic fallback", async () => {
+    const repository = new SupabaseAssignmentCommandRepository({
+      schema: () => ({ rpc: vi.fn(async () => ({ data: { success: false, code: "PERSISTENCE_FAILURE" }, error: null })) }),
+    });
+    await expect(repository.createAssignment({ commandId: "command-2", idempotencyKey: "command-2", equipmentId: "equipment-1", operatorId: "operator-1", projectId: "project-1", assignedDate: "2031-03-11", expectedReturn: "2031-03-11", remarks: "" })).resolves.toMatchObject({
+      success: false,
+      code: "PERSISTENCE_FAILURE",
+      message: "The remote service could not save the Assignment. Refresh before retrying.",
+    });
+  });
   it("keeps remote list empty when only a local Assignment exists", async () => {
     const container = await render(createElement(Assignments));
     expect(container.textContent).toContain("No canonical Bookings found.");
@@ -156,7 +178,7 @@ describe("canonical Assignment remote UI boundary", () => {
   it("keeps controlled canonical command failures on the form", async () => {
     authState.permissions.add("assignment.create");
     const dependencies = remoteDependencies();
-    dependencies.commandRepositories.canonicalAssignment = { createAssignment: vi.fn(async () => ({ success: false as const, code: "EQUIPMENT_UNAVAILABLE" as const, message: "The selected Equipment is unavailable for Assignment.", retryable: false, refreshRequired: true })) };
+    dependencies.commandRepositories.canonicalAssignment = { createAssignment: vi.fn(async () => ({ success: false as const, code: "EQUIPMENT_INTERVAL_CONFLICT" as const, message: "This equipment is already committed for the requested interval.", retryable: false, refreshRequired: true })) };
     const container = await render(createElement(NewAssignment), dependencies, "/assignments/new");
     await act(async () => { await Promise.resolve(); });
     for (const label of ["Equipment", "Operator", "Project"]) {
@@ -167,7 +189,7 @@ describe("canonical Assignment remote UI boundary", () => {
       await act(async () => choice.click());
     }
     await act(async () => { (container.querySelector("form") as HTMLFormElement).requestSubmit(); await Promise.resolve(); });
-    expect(container.textContent).toContain("The selected Equipment is unavailable for Assignment.");
+    expect(container.textContent).toContain("This equipment is already committed for the requested interval.");
   });
 
   it("preserves local read and mutation capability", () => {

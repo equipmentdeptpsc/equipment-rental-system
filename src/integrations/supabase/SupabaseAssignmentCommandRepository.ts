@@ -84,6 +84,7 @@ function failureMessage(code: string) {
     VALIDATION_REJECTED: "The Assignment request is incomplete or invalid.",
     NOT_FOUND: "Referenced Assignment information is unavailable. Refresh and try again.",
     EQUIPMENT_UNAVAILABLE: "The selected Equipment is unavailable for Assignment.",
+    EQUIPMENT_INTERVAL_CONFLICT: "This equipment is already committed for the requested interval.",
     CONFLICT: "The Assignment identity or selected Operator is already in use.",
     IDEMPOTENCY_MISMATCH: "This request conflicts with an earlier submission. Refresh before retrying.",
     INVALID_TRANSITION: "This Assignment cannot be cancelled from its current state.",
