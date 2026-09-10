@@ -45,6 +45,10 @@ export class SupabaseAuthenticationProvider implements RemoteAuthenticationProvi
     const restored = await this.restoreSession();
     return restored.success ? repositorySuccess(restored.value?.user ?? null) : restored;
   }
+  async updatePassword(password: string): Promise<RepositoryResult<void>> {
+    const response = await this.client.auth.updateUser({ password });
+    return response.error ? authFailure(response.error, "SUPABASE_PASSWORD_UPDATE_FAILED") : repositorySuccess(undefined);
+  }
   private async resolveIdentity(session: Session): Promise<RepositoryResult<RemoteAuthenticatedIdentity | null>> {
     const userResult = await this.users.getById(session.user.id);
     if (!userResult.success) return userResult;
