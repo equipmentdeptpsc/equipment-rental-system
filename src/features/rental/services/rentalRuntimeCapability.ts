@@ -48,7 +48,12 @@ export function canUseCanonicalRemoteRentalReturnMutation(configuration: RentalR
     && (configuration.remoteOperationalWritesEnabled === true || configuration.remoteRentalReturnEnabled === true);
 }
 
+export function canUseCanonicalRemoteRentalCancelMutation(configuration: RentalRuntimeConfiguration): boolean {
+  return configuration.persistenceMode === PersistenceMode.Remote
+    && (configuration.remoteOperationalWritesEnabled === true || configuration.remoteRentalCancelEnabled === true);
+}
+
 export function canUseAnyRentalMutations(configuration: RentalRuntimeConfiguration, canonicalRepositoryAvailable: boolean): boolean {
   return canUseLegacyRentalMutations(configuration)
-    || ((canUseCanonicalRemoteRentalMutations(configuration) || canUseCanonicalRemoteRentalApprovalMutations(configuration) || canUseCanonicalRemoteRentalReserveMutation(configuration) || canUseCanonicalRemoteRentalReleaseMutation(configuration) || canUseCanonicalRemoteRentalActivateMutation(configuration) || canUseCanonicalRemoteRentalReturnMutation(configuration)) && canonicalRepositoryAvailable);
+    || ((canUseCanonicalRemoteRentalMutations(configuration) || canUseCanonicalRemoteRentalApprovalMutations(configuration) || canUseCanonicalRemoteRentalReserveMutation(configuration) || canUseCanonicalRemoteRentalReleaseMutation(configuration) || canUseCanonicalRemoteRentalActivateMutation(configuration) || canUseCanonicalRemoteRentalReturnMutation(configuration) || canUseCanonicalRemoteRentalCancelMutation(configuration)) && canonicalRepositoryAvailable);
 }
