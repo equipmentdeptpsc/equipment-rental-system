@@ -1,7 +1,7 @@
 import type { RentalRecord } from "../types";
 import { getRentalApprovalStatus } from "../approval/rentalApproval";
 
-export type RentalQuickActionId = "reserve" | "submit" | "approve" | "reject" | "release" | "activate" | "return" | "close";
+export type RentalQuickActionId = "reserve" | "submit" | "approve" | "reject" | "release" | "activate" | "return" | "cancel" | "close";
 export interface RentalQuickAction { id: RentalQuickActionId; label: string; }
 export interface RentalQuickActionModel { actions: RentalQuickAction[]; message?: string; }
 export function visibleRentalQuickActions(model: RentalQuickActionModel, hideClose: boolean) {

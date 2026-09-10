@@ -75,3 +75,8 @@ export function createSupabaseOperationalCommands(client: RpcClient): Operationa
 export function createSupabaseRentalReturnCommands(client: RpcClient): RentalReturnCommandRepository {
   return new SupabaseOperationalCommandRepository(client);
 }
+
+export function createSupabaseRentalCancellationCommands(client: RpcClient): Pick<RentalLifecycleCommandRepository, "cancel"> {
+  const repository = new SupabaseOperationalCommandRepository(client);
+  return { cancel: repository.cancel };
+}
