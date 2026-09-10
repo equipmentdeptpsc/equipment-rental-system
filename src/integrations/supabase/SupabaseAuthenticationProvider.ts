@@ -3,6 +3,7 @@ import { repositoryFailure, repositorySuccess, type RepositoryResult } from "@/c
 import type { ReadOnlyRepository } from "@/core/remote";
 import type { RemoteAuthenticatedIdentity, RemoteAuthenticationProvider } from "@/features/auth/providers/RemoteAuthenticationProvider";
 import type { User } from "@/features/auth/domain/user";
+import type { RecoveryCallback } from "@/features/auth/recovery";
 
 export class SupabaseAuthenticationProvider implements RemoteAuthenticationProvider {
   readonly id = "supabase";
@@ -44,6 +45,14 @@ export class SupabaseAuthenticationProvider implements RemoteAuthenticationProvi
   async getCurrentUser(): Promise<RepositoryResult<User | null>> {
     const restored = await this.restoreSession();
     return restored.success ? repositorySuccess(restored.value?.user ?? null) : restored;
+  }
+  async establishRecoverySession(callback: RecoveryCallback): Promise<RepositoryResult<RemoteAuthenticatedIdentity | null>> {
+    if (callback.kind === "none" || callback.kind === "invalid") return repositorySuccess(null);
+    const response = callback.kind === "pkce"
+      ? await this.client.auth.exchangeCodeForSession(callback.code)
+      : await this.client.auth.setSession({ access_token: callback.accessToken, refresh_token: callback.refreshToken });
+    if (response.error || !response.data.session) return authFailure(response.error, "SUPABASE_RECOVERY_SESSION_ESTABLISHMENT_FAILED");
+    return this.resolveIdentity(response.data.session);
   }
   async updatePassword(password: string): Promise<RepositoryResult<void>> {
     const response = await this.client.auth.updateUser({ password });
