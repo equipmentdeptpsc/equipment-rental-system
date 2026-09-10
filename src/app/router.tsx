@@ -10,6 +10,10 @@ import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/NotFound";
 import AccessDenied from "@/pages/AccessDenied";
 import Login from "@/pages/Login";
+import ResetPassword from "@/pages/ResetPassword";
+import { hasRecoveryCallback } from "@/features/auth/recovery";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Equipment from "@/pages/Equipment";
 import NewEquipment from "@/pages/Equipment/New";
 import EditEquipment from "@/pages/Equipment/Edit";
@@ -70,6 +74,8 @@ const IdleReasonPage = lazy(() => import("@/features/masters/idle-reason/pages")
 const EquipmentSubcategoryPage = lazy(() => import("@/features/masters/equipment-subcategory/pages"));
 const CertificationTypesPage = lazy(() => import("@/features/masters/certification-type/pages/CertificationTypesPage"));
 
+function RecoveryRedirect({ children }: { children: ReactNode }) { const navigate=useNavigate(); useEffect(()=>{ if(hasRecoveryCallback()) navigate("/reset-password",{replace:true}); },[navigate]); return <>{children}</>; }
+
 function permitted(permission: Permission, element: ReactNode) {
   return <RequirePermission permission={permission}>{element}</RequirePermission>;
 }
@@ -87,6 +93,7 @@ export const PUBLIC_ROUTE_PATTERNS = Object.freeze([
 
 export const router = createBrowserRouter([
   { path: "/login", element: <AnonymousRoute><Login /></AnonymousRoute> },
+  { path: "/reset-password", element: <ResetPassword /> },
   { path: "/rental-approval/:token", element: <RentalApprovalPage /> },
   { path: "/customer-deur-review/:deurId", element: <CustomerDeurReviewPage /> },
   { path: "/review/deur/completed", element: <ReviewCompletedPage audience="customer" /> },
@@ -96,7 +103,7 @@ export const router = createBrowserRouter([
   { path: "/review/manager/:credential", element: <ManagerDeurReviewPage /> },
   {
     path: "/",
-    element: <RequireAuthentication><AppLayout /></RequireAuthentication>,
+    element: <RecoveryRedirect><RequireAuthentication><AppLayout /></RequireAuthentication></RecoveryRedirect>,
     errorElement: <NotFound />,
     children: [
       { index: true, element: permitted("dashboard.read", <Dashboard />) },

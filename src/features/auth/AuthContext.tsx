@@ -18,6 +18,7 @@ import { LOCAL_AUTH_PROVIDER_ID } from "./providers/local/LocalAuthenticationPro
 import type { Role } from "./role";
 import { AUTH_USERS_STORAGE_KEY } from "./repository/localStorageSchema";
 import { subscribeCanonicalUserChanges } from "./services/canonicalUserChangeNotifications";
+import { hasRecoveryCallback } from "./recovery";
 import {
   adaptDomainUser,
   adaptLegacyUser,
@@ -31,6 +32,7 @@ export interface AuthContextType {
   isInitializing: boolean;
   isSubmitting: boolean;
   isLoggingOut: boolean;
+  isRecoveryFlow: boolean;
   authenticate: (request: AuthenticationRequest) => Promise<LoginResult>;
   login: {
     (credentials: LoginCredentials): Promise<LoginResult>;
@@ -56,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isRecoveryFlow] = useState(() => hasRecoveryCallback());
 
   const refreshSession = useCallback(async () => {
     setIsInitializing(true);
@@ -211,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isInitializing,
       isSubmitting,
       isLoggingOut,
+      isRecoveryFlow,
       authenticate,
       login,
       loginWithOperatorPin,
@@ -223,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token: session?.id ?? null,
       refreshSession,
     }),
-    [authenticate, authentication, isInitializing, isLoggingOut, isSubmitting, login, loginWithOperatorPin, logout, refreshSession, remotePermissions, session, user],
+    [authenticate, authentication, isInitializing, isLoggingOut, isRecoveryFlow, isSubmitting, login, loginWithOperatorPin, logout, refreshSession, remotePermissions, session, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
