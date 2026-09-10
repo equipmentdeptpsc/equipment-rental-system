@@ -74,7 +74,7 @@ const IdleReasonPage = lazy(() => import("@/features/masters/idle-reason/pages")
 const EquipmentSubcategoryPage = lazy(() => import("@/features/masters/equipment-subcategory/pages"));
 const CertificationTypesPage = lazy(() => import("@/features/masters/certification-type/pages/CertificationTypesPage"));
 
-function RecoveryRedirect({ children }: { children: ReactNode }) { const navigate=useNavigate(); useEffect(()=>{ if(hasRecoveryCallback()) navigate("/reset-password",{replace:true}); },[navigate]); return <>{children}</>; }
+function RecoveryRedirect({ children }: { children: ReactNode }) { const navigate=useNavigate(); useEffect(()=>{ if(hasRecoveryCallback()) navigate({ pathname: "/reset-password", search: window.location.search, hash: window.location.hash }, { replace: true }); },[navigate]); return <>{children}</>; }
 
 function permitted(permission: Permission, element: ReactNode) {
   return <RequirePermission permission={permission}>{element}</RequirePermission>;
