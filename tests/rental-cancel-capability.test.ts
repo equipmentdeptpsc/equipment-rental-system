@@ -9,9 +9,9 @@ import RentalQuickActions from "@/features/rental/components/RentalQuickActions"
 import { canUseCanonicalRemoteRentalCancelMutation, canUseCanonicalRemoteRentalReleaseMutation, canUseCanonicalRemoteRentalReturnMutation } from "@/features/rental/services/rentalRuntimeCapability";
 import { createSupabaseRentalCancellationCommands } from "@/integrations/supabase/SupabaseOperationalCommandRepository";
 
-const mocks = vi.hoisted(() => ({ cancel: vi.fn(), toast: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ cancel: vi.fn(), toast: vi.fn(), refresh: vi.fn(), allowRentalUpdate: true }));
 
-vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => ({ user: { id: "uat-admin", name: "UAT Administrator" }, hasPermission: (permission: string) => permission === "rental.manage" }) }));
+vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => ({ user: { id: "uat-admin", name: "UAT Administrator" }, hasPermission: (permission: string) => permission === "rental.update" && mocks.allowRentalUpdate }) }));
 vi.mock("@/components/ui/toast/ToastContext", () => ({ useToast: () => ({ showToast: mocks.toast }) }));
 vi.mock("@/features/rental/context/RentalContext", () => ({ useRental: () => ({ transitionRental: vi.fn(), returnRental: vi.fn(), releaseRental: vi.fn(), submitForApproval: vi.fn(), approveRental: vi.fn(), rejectRental: vi.fn(), getReleaseReadiness: () => ({ eligible: true }) }) }));
 vi.mock("@/features/rental/remote/canonicalRentalRefresh", () => ({ requestCanonicalRentalRefresh: mocks.refresh }));
@@ -35,7 +35,7 @@ async function render(cancelEnabled: boolean) {
   return container;
 }
 
-afterEach(async () => { vi.clearAllMocks(); while (roots.length) await act(async () => roots.pop()?.unmount()); });
+afterEach(async () => { vi.clearAllMocks(); mocks.allowRentalUpdate = true; while (roots.length) await act(async () => roots.pop()?.unmount()); });
 
 describe("narrow remote Rental cancellation capability", () => {
   it("is fail-closed and does not enable unrelated operational capabilities", () => {
@@ -48,13 +48,18 @@ describe("narrow remote Rental cancellation capability", () => {
     expect(canUseCanonicalRemoteRentalReturnMutation({ ...local, persistenceMode: PersistenceMode.Remote, remoteOperationalWritesEnabled: false, remoteRentalCancelEnabled: true })).toBe(false);
   });
 
-  it("hides Cancel when disabled and shows only Cancel when enabled with rental.manage", async () => {
+  it("hides Cancel when disabled and shows only Cancel when enabled with rental.update", async () => {
     expect((await render(false)).textContent).toBe("");
     const container = await render(true);
     expect(container.textContent).toContain("Cancel Rental");
     expect(container.textContent).not.toContain("Reserve Rental");
     expect(container.textContent).not.toContain("Release Equipment");
     expect(container.textContent).not.toContain("Return Equipment");
+  });
+
+  it("hides Cancel for a user without rental.update", async () => {
+    mocks.allowRentalUpdate = false;
+    expect((await render(true)).textContent).toBe("");
   });
 
   it("calls only the existing canonical cancellation command with optimistic versioning", async () => {
